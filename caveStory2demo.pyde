@@ -73,20 +73,17 @@ class Quote(Creature):
         self.x += self.vx
         self.y += self.vy
         
+        # On player collision
         for e in game.enemies:
-            if self.distance(e) <= self.r + e.r:
-                # there is a collision
-                # if self.vy > 0 and self.y < e.y:
-                game.enemies.remove(e)
-                del e
-                # self.vy = -8
+            if self.distance(e) <= self.r + e.r: # If you hit an enemy, you take damage
+                game.currentHealth -= 5
                 
         for g in game.guns:
             if self.distance(g) <= self.r + g.r:
                 game.guns.remove(g)
                 del g
                 game.gunAcquired = True
-                game.quote = Quote(50,50,75,self.g,"quotewithPS.png",128,120,4)
+                game.quote = Quote(200,525,75,self.g,"quotewithPS.png",128,120,4)
                     
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
@@ -158,11 +155,12 @@ class Bullet(Creature):
             return
         
         for e in game.enemies:
-            if self.distance(e) <= self.r + e.r:
+            if self.distance(e) <= self.r + e.r: # If a bullet hits an enemy, the enemy dies
                 game.enemies.remove(e)
                 game.bullets.remove(self)
                 del self
                 del e
+                game.currentXP += 10
                 return
         
     def distance(self,e):
@@ -173,12 +171,14 @@ class Game:
         self.w=w
         self.h=h
         self.g=g
+        self.currentHealth = 100
+        self.currentXP = 0
         self.gunAcquired = False
         self.quote = Quote(50,50,75,self.g,"quote.png",120,120,4)
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500))
         self.guns = []
-        self.guns.append(Gun(200,50,30,self.g,"polarstar.png",109,75))
+        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75))
         
         self.bullets = []
         
@@ -197,6 +197,18 @@ class Game:
         for b in self.bullets:
             b.display()
         
+        # Experience bar; starts empty
+        fill(102,0,51) # Colour of the full bar
+        rect(30,30,100,20) # The full bar
+        fill(255,255,0) # Colour of the current progress
+        rect(30,30,min(self.currentXP * 1, 100), 20) # Current progress    
+        
+        # Health bar; starts full
+        fill(102,0,51) # Colour of the full bar
+        rect(30,60,100,20) # The full bar
+        fill(255,0,0) # Colour of the current progress
+        rect(30,60,min(self.currentHealth * 1, 100), 20) # Current progress
+        
 game = Game(1024,768,600)
 
 def setup():
@@ -206,6 +218,10 @@ def setup():
 def draw():
     background(100)
     game.display()
+    if game.currentHealth <= 0:
+        game.__init__(1024,768,600)
+        game.display()
+        
     
 def keyPressed():
     # if game.quote.y+game.quote.r == game.quote.g: # Disallows movement when mid-air. WIP.
