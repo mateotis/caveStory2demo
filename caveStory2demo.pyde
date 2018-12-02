@@ -34,9 +34,9 @@ class Creature:
     def display(self):
         self.update()
         
-        # if self.vy != 0:
-        #     self.f = 4
-        if self.vx != 0:
+        if isinstance (self, Bat):
+            self.f = (self.f+0.3)%self.F
+        elif self.vx != 0:
             self.f = (self.f+0.3)%self.F
         else:
             self.f = 3
@@ -60,10 +60,10 @@ class Quote(Creature):
         
         if self.keyHandler[LEFT]:
             self.vx = -5
-            self.dir = 1
+            self.dir = -1
         elif self.keyHandler[RIGHT]:
             self.vx = 5
-            self.dir = -1
+            self.dir = 1
         else:
             self.vx = 0
         
@@ -86,6 +86,7 @@ class Quote(Creature):
                 game.guns.remove(g)
                 del g
                 game.gunAcquired = True
+                game.quote = Quote(50,50,75,self.g,"quotewithPS.png",128,120,4)
                     
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
@@ -106,9 +107,39 @@ class Bat(Creature):
             
         self.y += self.vy
 
-class Gun(Creature):
-    def __init__(self,x,y,r,g,img,w,h,F):
-        Creature.__init__(self,x,y,r,g,img,w,h, F)
+class Gun: # Almost the same as Creature, but without needing frame count.
+    def __init__(self,x,y,r,g,img,w,h):
+        self.x=x
+        self.y=y
+        self.r=r
+        self.g=g
+        self.vx=0
+        self.vy=0
+        self.w=w
+        self.h=h
+        self.img = loadImage(path+"/images/"+img)
+
+    def gravity(self):
+        if self.y+self.r < self.g:
+            self.vy += 0.3
+            if self.vy > self.g - (self.y+self.r):
+                self.vy = self.g - (self.y+self.r)
+        else:
+            self.vy = 0 #-10
+
+    def update(self):
+        self.gravity()
+        self.x += self.vx
+        self.y += self.vy    
+    
+    def display(self):
+        self.update()
+        image(self.img,self.x,self.y)
+        
+        strokeWeight(5)
+        stroke(255)
+        noFill()
+        ellipse(self.x,self.y,2*self.r,2*self.r)
         
 
 class Bullet(Creature):
@@ -143,11 +174,11 @@ class Game:
         self.h=h
         self.g=g
         self.gunAcquired = False
-        self.quote = Quote(50,50,75,self.g,"quote.png",130,130,6)
+        self.quote = Quote(50,50,75,self.g,"quote.png",120,120,4)
         self.enemies = []
-        self.enemies.append(Bat(300,50,35,self.g,"quote.png",70,70,8,200,500))
+        self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500))
         self.guns = []
-        self.guns.append(Gun(300,50,35,self.g,"guns.png",70,70, 0))
+        self.guns.append(Gun(200,50,30,self.g,"polarstar.png",109,75))
         
         self.bullets = []
         
@@ -173,7 +204,7 @@ def setup():
     background(0)
     
 def draw():
-    background(0)
+    background(100)
     game.display()
     
 def keyPressed():
@@ -185,7 +216,7 @@ def keyPressed():
     elif keyCode == UP:
         game.quote.keyHandler[UP]=True
     elif keyCode == 32 and game.gunAcquired == True:
-        game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,25,0,"quote.png",50,50,10,game.quote.dir*(-8))) # Needs to be edited to fit the inverted Quote sprites.
+        game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
         
 def keyReleased():
     if keyCode == LEFT:
