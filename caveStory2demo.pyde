@@ -1,5 +1,5 @@
 add_library('minim')
-import os
+import os, time, threading
 path=os.getcwd()
 player = Minim(this)
 
@@ -54,6 +54,11 @@ class Creature:
 class Quote(Creature):
     def __init__(self,x,y,r,g,img,w,h,F):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
+        self.recentlyDamaged = False
+        self.inDialog = False
+        self.midDialog = False
+        self.currentHealth = 100
+        self.currentXP = 0
         self.keyHandler={LEFT:False, RIGHT:False, UP:False}
     def update(self):
         self.gravity()
@@ -75,8 +80,13 @@ class Quote(Creature):
         
         # On player collision
         for e in game.enemies:
-            if self.distance(e) <= self.r + e.r: # If you hit an enemy, you take damage
-                game.currentHealth -= 5
+            # t = threading.Timer(5.0, self.damagedTimer())
+            # t.start()
+            if self.distance(e) <= self.r + e.r and self.recentlyDamaged == False: # If you hit an enemy, you take damage
+                self.currentHealth -= 5
+                self.recentlyDamaged = False
+                # t = threading.Timer(5.0, self.damagedTimer())
+                # t.start()
                 
         for g in game.guns:
             if self.distance(g) <= self.r + g.r:
@@ -84,10 +94,46 @@ class Quote(Creature):
                 del g
                 game.gunAcquired = True
                 game.quote = Quote(200,525,75,self.g,"quotewithPS.png",128,120,4)
+                
+        # for n in game.npcs:
+        #     if self.distance(n) <= self.r + n.r and self.inDialog == True and self.midDialog == False:
+        #         self.midDialog = True
+        #         print('in dialog')
+        #         game.display()
+        #         break
                     
+    def damagedTimer(self):
+        self.recentlyDamaged = False
+        print(self.recentlyDamaged)
+    
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
+
+class NPC(Creature):
+    def __init__(self,x,y,r,g,img,w,h,F):
+        Creature.__init__(self,x,y,r,g,img,w,h,F)    
         
+    def update(self):
+        self.gravity()
+        self.x += self.vx
+        self.y += self.vy
+
+class DialogBox:
+    def __init__(self,x,y,w,h, img):
+        self.x=x
+        self.y=y
+        self.w=w
+        self.h=h
+        self.img = loadImage(path+"/images/"+img)
+        
+    def display(self):
+        textSize(80)
+        fill(0)
+        rect(self.x, self.y, self.w, self.h)
+        image(self.img, self.x, self.y)
+        fill(255)
+        text("Hi Quote!", self.x + 200, self.y + 100)
+
 class Bat(Creature):
     def __init__(self,x,y,r,g,img,w,h,F,y1,y2):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
@@ -160,7 +206,7 @@ class Bullet(Creature):
                 game.bullets.remove(self)
                 del self
                 del e
-                game.currentXP += 10
+                game.quote.currentXP += 10
                 return
         
     def distance(self,e):
@@ -171,22 +217,24 @@ class Game:
         self.w=w
         self.h=h
         self.g=g
-        self.currentHealth = 100
-        self.currentXP = 0
         self.gunAcquired = False
         self.quote = Quote(50,50,75,self.g,"quote.png",120,120,4)
+        self.npcs = []
+        self.npcs.append(NPC(400,50,75,self.g, "curlybrace.png",125,125,6))
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500))
         self.guns = []
-        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75))
-        
+        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75))    
         self.bullets = []
+        self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
         
     def display(self):
         stroke(255)
         line(0,self.g,self.w,self.g)
             
         self.quote.display()
+        if self.quote.inDialog == True:
+            self.dialogBox.display()
         
         for g in self.guns:
             g.display()
@@ -196,18 +244,21 @@ class Game:
             
         for b in self.bullets:
             b.display()
+            
+        for n in self.npcs:
+            n.display()
         
         # Experience bar; starts empty
         fill(102,0,51) # Colour of the full bar
         rect(30,30,100,20) # The full bar
         fill(255,255,0) # Colour of the current progress
-        rect(30,30,min(self.currentXP * 1, 100), 20) # Current progress    
+        rect(30,30,min(self.quote.currentXP * 1, 100), 20) # Current progress
         
         # Health bar; starts full
         fill(102,0,51) # Colour of the full bar
         rect(30,60,100,20) # The full bar
         fill(255,0,0) # Colour of the current progress
-        rect(30,60,min(self.currentHealth * 1, 100), 20) # Current progress
+        rect(30,60,min(self.quote.currentHealth * 1, 100), 20) # Current progress
         
 game = Game(1024,768,600)
 
@@ -218,7 +269,7 @@ def setup():
 def draw():
     background(100)
     game.display()
-    if game.currentHealth <= 0:
+    if game.quote.currentHealth <= 0:
         game.__init__(1024,768,600)
         game.display()
         
@@ -233,7 +284,21 @@ def keyPressed():
         game.quote.keyHandler[UP]=True
     elif keyCode == 32 and game.gunAcquired == True:
         game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
-        
+    elif key == ENTER:
+        print('enter pressed')
+        for n in game.npcs:
+            if (game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == True) or game.quote.inDialog == True: # WIP; currently it doesn't clear the dialog box if Quote is still in the NPC's hitbox.
+                print('in this loop')
+                game.quote.inDialog = False
+                game.display()
+        for n in game.npcs:
+            if game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == False:
+                game.quote.inDialog = True
+                print('in dialog')
+                game.display()
+                break
+
+
 def keyReleased():
     if keyCode == LEFT:
         game.quote.keyHandler[LEFT]=False
