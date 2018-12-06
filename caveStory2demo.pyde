@@ -56,7 +56,7 @@ class Quote(Creature):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
         self.recentlyDamaged = False
         self.inDialog = False
-        self.midDialog = False
+        self.currentLives = 3
         self.currentHealth = 100
         self.currentXP = 0
         self.keyHandler={LEFT:False, RIGHT:False, UP:False}
@@ -85,6 +85,9 @@ class Quote(Creature):
             if self.distance(e) <= self.r + e.r and self.recentlyDamaged == False: # If you hit an enemy, you take damage
                 self.currentHealth -= 5
                 self.recentlyDamaged = False
+                if self.currentHealth <= 0 and self.currentLives > 0:
+                    self.currentLives -= 1
+                    self.currentHealth = 100
                 # t = threading.Timer(5.0, self.damagedTimer())
                 # t.start()
                 
@@ -250,15 +253,19 @@ class Game:
         
         # Experience bar; starts empty
         fill(102,0,51) # Colour of the full bar
-        rect(30,30,100,20) # The full bar
+        rect(50,30,100,20) # The full bar
         fill(255,255,0) # Colour of the current progress
-        rect(30,30,min(self.quote.currentXP * 1, 100), 20) # Current progress
+        rect(50,30,min(self.quote.currentXP * 1, 100), 20) # Current progress
         
         # Health bar; starts full
         fill(102,0,51) # Colour of the full bar
-        rect(30,60,100,20) # The full bar
+        rect(50,60,100,20) # The full bar
         fill(255,0,0) # Colour of the current progress
-        rect(30,60,min(self.quote.currentHealth * 1, 100), 20) # Current progress
+        rect(50,60,min(self.quote.currentHealth * 1, 100), 20) # Current progress
+        
+        textSize(36)
+        fill(255)
+        text(str(game.quote.currentLives), 20, 80)
         
 game = Game(1024,768,600)
 
@@ -269,7 +276,7 @@ def setup():
 def draw():
     background(100)
     game.display()
-    if game.quote.currentHealth <= 0:
+    if game.quote.currentLives == 0:
         game.__init__(1024,768,600)
         game.display()
         
@@ -287,12 +294,11 @@ def keyPressed():
     elif key == ENTER:
         print('enter pressed')
         for n in game.npcs:
-            if (game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == True) or game.quote.inDialog == True: # WIP; currently it doesn't clear the dialog box if Quote is still in the NPC's hitbox.
+            if (game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == True) or game.quote.inDialog == True: # If in dialog, close dialog box.
                 print('in this loop')
                 game.quote.inDialog = False
                 game.display()
-        for n in game.npcs:
-            if game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == False:
+            elif game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == False: # If not in dialog and near an NPC, open dialog box.
                 game.quote.inDialog = True
                 print('in dialog')
                 game.display()
