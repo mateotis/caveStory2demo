@@ -85,7 +85,7 @@ class Quote(Creature):
         for e in game.enemies:
             if self.distance(e) <= self.r + e.r: # Update the timer on every collision
                 self.endTime = time.time()
-            if round(self.endTime - self.startTime, 1) == 0.3: # Also check if the invuln has expired yet
+            if round(self.endTime - self.startTime, 1) >= 0.3: # Also check if the invuln has expired yet
                 self.recentlyDamaged = False
             
             if self.distance(e) <= self.r + e.r and self.recentlyDamaged == False: # If you hit an enemy, you take damage
@@ -98,6 +98,7 @@ class Quote(Creature):
 
         for g in game.guns:
             if self.distance(g) <= self.r + g.r:
+                game.equippedGuns.append(g) # Removes it from the floor, adds it to the equipped list
                 game.guns.remove(g)
                 del g
                 game.gunAcquired = True
@@ -166,6 +167,9 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         self.h=h
         self.img = loadImage(path+"/images/"+img)
         self.fireRate = fireRate
+        self.gunReloading = False
+        self.reloadStart = time.time()
+        self.reloadEnd = time.time()
 
     def gravity(self):
         if self.y+self.r < self.g:
@@ -189,7 +193,16 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         noFill()
         ellipse(self.x,self.y,2*self.r,2*self.r)
         
-    # def reload(self, fireRate):
+    def fire(self):    
+        if self.gunReloading == False:
+            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
+            self.gunReloading = True
+            self.reloadStart = time.time()
+            self.reload()
+        
+    def reload(self):
+        if (self.reloadEnd - self.reloadStart) >= self.fireRate:
+            self.gunReloading = False
         
 
 class Bullet(Creature):
@@ -230,8 +243,9 @@ class Game:
         self.npcs.append(NPC(400,50,75,self.g, "curlybrace.png",125,125,6))
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500))
-        self.guns = []
-        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75, 0.3))    
+        self.guns = [] # Guns lying on the ground
+        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75, 0.3)) 
+        self.equippedGuns = [] # Guns equipped by the player   
         self.bullets = []
         self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
         
@@ -280,6 +294,10 @@ def setup():
 def draw():
     background(100)
     game.display()
+    for g in game.equippedGuns:
+        if g.gunReloading == True:
+            g.reloadEnd = time.time()
+            g.reload() # Updates reload timer until gun is reloaded.
     if game.quote.currentLives == 0:
         game.__init__(1024,768,600)
         game.display()
@@ -294,17 +312,15 @@ def keyPressed():
     elif keyCode == UP:
         game.quote.keyHandler[UP]=True
     elif keyCode == 32 and game.gunAcquired == True:
-        game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
+        for g in game.equippedGuns:
+            g.fire()
     elif key == ENTER:
-        print('enter pressed')
         for n in game.npcs:
             if (game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == True) or game.quote.inDialog == True: # If in dialog, close dialog box.
-                print('in this loop')
                 game.quote.inDialog = False
                 game.display()
             elif game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == False: # If not in dialog and near an NPC, open dialog box.
                 game.quote.inDialog = True
-                print('in dialog')
                 game.display()
                 break
 
