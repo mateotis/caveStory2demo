@@ -56,6 +56,9 @@ class Quote(Creature):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
         self.recentlyDamaged = False
         self.inDialog = False
+        self.timerSet = False
+        self.startTime = time.time()
+        self.endTime = time.time()
         self.currentLives = 3
         self.currentHealth = 100
         self.currentXP = 0
@@ -80,17 +83,19 @@ class Quote(Creature):
         
         # On player collision
         for e in game.enemies:
-            # t = threading.Timer(5.0, self.damagedTimer())
-            # t.start()
+            if self.distance(e) <= self.r + e.r: # Update the timer on every collision
+                self.endTime = time.time()
+            if round(self.endTime - self.startTime, 1) == 0.3: # Also check if the invuln has expired yet
+                self.recentlyDamaged = False
+            
             if self.distance(e) <= self.r + e.r and self.recentlyDamaged == False: # If you hit an enemy, you take damage
                 self.currentHealth -= 5
-                self.recentlyDamaged = False
+                self.recentlyDamaged = True
+                self.startTime = time.time()
                 if self.currentHealth <= 0 and self.currentLives > 0:
                     self.currentLives -= 1
                     self.currentHealth = 100
-                # t = threading.Timer(5.0, self.damagedTimer())
-                # t.start()
-                
+
         for g in game.guns:
             if self.distance(g) <= self.r + g.r:
                 game.guns.remove(g)
@@ -104,10 +109,6 @@ class Quote(Creature):
         #         print('in dialog')
         #         game.display()
         #         break
-                    
-    def damagedTimer(self):
-        self.recentlyDamaged = False
-        print(self.recentlyDamaged)
     
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
@@ -154,7 +155,7 @@ class Bat(Creature):
         self.y += self.vy
 
 class Gun: # Almost the same as Creature, but without needing frame count.
-    def __init__(self,x,y,r,g,img,w,h):
+    def __init__(self,x,y,r,g,img,w,h,fireRate):
         self.x=x
         self.y=y
         self.r=r
@@ -164,6 +165,7 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         self.w=w
         self.h=h
         self.img = loadImage(path+"/images/"+img)
+        self.fireRate = fireRate
 
     def gravity(self):
         if self.y+self.r < self.g:
@@ -186,6 +188,8 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         stroke(255)
         noFill()
         ellipse(self.x,self.y,2*self.r,2*self.r)
+        
+    # def reload(self, fireRate):
         
 
 class Bullet(Creature):
@@ -227,7 +231,7 @@ class Game:
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500))
         self.guns = []
-        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75))    
+        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75, 0.3))    
         self.bullets = []
         self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
         
