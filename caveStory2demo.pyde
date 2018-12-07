@@ -50,7 +50,13 @@ class Creature:
         stroke(255)
         noFill()
         ellipse(self.x,self.y,2*self.r,2*self.r)
-    
+
+class Enemy(Creature):
+    def __init__(self,x,y,r,g,img,w,h,F,dmg,health): 
+        Creature.__init__(self,x,y,r,g,img,w,h,F)
+        self.dmg = dmg
+        self.health = health
+            
 class Quote(Creature):
     def __init__(self,x,y,r,g,img,w,h,F):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
@@ -89,7 +95,7 @@ class Quote(Creature):
                 self.recentlyDamaged = False
             
             if self.distance(e) <= self.r + e.r and self.recentlyDamaged == False: # If you hit an enemy, you take damage
-                self.currentHealth -= 5
+                self.currentHealth -= e.dmg
                 self.recentlyDamaged = True
                 self.startTime = time.time()
                 if self.currentHealth <= 0 and self.currentLives > 0:
@@ -139,9 +145,9 @@ class DialogBox:
         fill(255)
         text("Hi Quote!", self.x + 200, self.y + 100)
 
-class Bat(Creature):
-    def __init__(self,x,y,r,g,img,w,h,F,y1,y2):
-        Creature.__init__(self,x,y,r,g,img,w,h,F)
+class Bat(Enemy):
+    def __init__(self,x,y,r,g,img,w,h,F,y1,y2,dmg,health):
+        Enemy.__init__(self,x,y,r,g,img,w,h,F,dmg,health)
         self.y1=y1
         self.y2=y2
         self.dir = -1
@@ -195,7 +201,7 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         
     def fire(self):    
         if self.gunReloading == False:
-            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
+            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8, 5))
             self.gunReloading = True
             self.reloadStart = time.time()
             self.reload()
@@ -206,8 +212,9 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         
 
 class Bullet(Creature):
-    def __init__(self,x,y,r,g,img,w,h,F,vx):
+    def __init__(self,x,y,r,g,img,w,h,F,vx, dmg):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
+        self.dmg = dmg
         self.vx = vx
         self.dir = vx
         self.ttl = 60
@@ -221,12 +228,14 @@ class Bullet(Creature):
             return
         
         for e in game.enemies:
-            if self.distance(e) <= self.r + e.r: # If a bullet hits an enemy, the enemy dies
-                game.enemies.remove(e)
+            if self.distance(e) <= self.r + e.r: # If a bullet hits an enemy, the enemy takes damage
+                e.health -= self.dmg
                 game.bullets.remove(self)
                 del self
-                del e
-                game.quote.currentXP += 10
+                if e.health <= 0:
+                    game.enemies.remove(e)
+                    del e
+                    game.quote.currentXP += 10
                 return
         
     def distance(self,e):
@@ -242,7 +251,7 @@ class Game:
         self.npcs = []
         self.npcs.append(NPC(400,50,75,self.g, "curlybrace.png",125,125,6))
         self.enemies = []
-        self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500))
+        self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
         self.guns = [] # Guns lying on the ground
         self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75, 0.3)) 
         self.equippedGuns = [] # Guns equipped by the player   
