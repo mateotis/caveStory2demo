@@ -38,10 +38,10 @@ class Creature:
         self.x += self.vx
         self.y += self.vy
         
-        # if self.y >= game.h/2 and self.vy > 0:
-        #     game.y += self.vy
-        # elif self.y >= game.h/2 and self.vy < 0:
-        #     game.y += self.vy
+        if self.y >= game.h/2 and self.vy > 0:
+            game.y += self.vy
+        elif self.y >= game.h/2 and self.vy < 0:
+            game.y += self.vy
         
     def display(self):
         self.update()
@@ -103,9 +103,9 @@ class Quote(Creature):
         if self.x > game.w/2:
             game.x += self.vx
             
-        if self.y >= game.h/2 and self.vy > 0:
+        if self.y >= game.h/2:
             game.y += self.vy
-        elif self.y >= game.h/2 and self.vy < 0:
+        elif self.y <= game.h/2:
             game.y += self.vy
         
         # On player collision
@@ -327,12 +327,12 @@ class Game:
         self.xpdrops = []
         self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
         self.platforms=[]
-        for i in range(3):
+        for i in range(5):
             self.platforms.append(Platform(250+i*250,450-150*i,200,50))
         
     def display(self):
         stroke(255)
-        line(0,self.g,self.w,self.g)
+        line(0,self.g - self.y,self.w,self.g - self.y)
             
         self.quote.display()
         if self.quote.inDialog == True:
