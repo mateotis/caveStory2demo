@@ -1,5 +1,5 @@
 add_library('minim')
-import os, time, threading
+import os, time
 path=os.getcwd()
 player = Minim(this)
 
@@ -226,6 +226,13 @@ class Item:
                 self.vy = self.g - (self.y+self.r)
         else:
             self.vy = 0 #-10
+            
+        for p in game.platforms:
+            if self.x in range(p.x, p.x+p.w) and self.y+self.r <= p.y:
+                self.g = p.y
+                break
+            else:
+                self.g = game.g
 
     def update(self):
         self.gravity()
@@ -234,12 +241,12 @@ class Item:
     
     def display(self):
         self.update()
-        image(self.img,self.x,self.y)
+        image(self.img,self.x - game.x,self.y - game.y)
         
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x,self.y,2*self.r,2*self.r)
+        ellipse(self.x - game.x,self.y - game.y,2*self.r,2*self.r)
 
 class Gun(Item): # Almost the same as Creature, but without needing frame count.
     def __init__(self,x,y,r,g,img,w,h,dmg,fireRate):
