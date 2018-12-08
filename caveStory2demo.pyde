@@ -25,11 +25,23 @@ class Creature:
                 self.vy = self.g - (self.y+self.r)
         else:
             self.vy = 0 #-10
+            
+        for p in game.platforms:
+            if self.x in range(p.x, p.x+p.w) and self.y+self.r <= p.y:
+                self.g = p.y
+                break
+            else:
+                self.g = game.g
     
     def update(self):
         self.gravity()
         self.x += self.vx
         self.y += self.vy
+        
+        # if self.y >= game.h/2 and self.vy > 0:
+        #     game.y += self.vy
+        # elif self.y >= game.h/2 and self.vy < 0:
+        #     game.y += self.vy
         
     def display(self):
         self.update()
@@ -42,14 +54,14 @@ class Creature:
             self.f = 3
             
         if self.dir > 0:
-            image(self.img,self.x-self.w//2,self.y-self.h//2,self.w,self.h,int(self.f)*self.w,0,int(self.f+1)*self.w,self.h)
+            image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,int(self.f)*self.w,0,int(self.f+1)*self.w,self.h)
         elif self.dir < 0:
-            image(self.img,self.x-self.w//2,self.y-self.h//2,self.w,self.h,int(self.f+1)*self.w,0,int(self.f)*self.w,self.h)
+            image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,int(self.f+1)*self.w,0,int(self.f)*self.w,self.h)
             
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x,self.y,2*self.r,2*self.r)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
 
 class Enemy(Creature):
     def __init__(self,x,y,r,g,img,w,h,F,dmg,health): 
@@ -66,6 +78,7 @@ class Quote(Creature):
         self.startTime = time.time()
         self.endTime = time.time()
         self.currentLives = 3
+        self.currentLevel = 1
         self.currentHealth = 100
         self.currentXP = 0
         self.keyHandler={LEFT:False, RIGHT:False, UP:False}
@@ -86,12 +99,20 @@ class Quote(Creature):
         
         self.x += self.vx
         self.y += self.vy
+
+        if self.x > game.w/2:
+            game.x += self.vx
+            
+        if self.y >= game.h/2 and self.vy > 0:
+            game.y += self.vy
+        elif self.y >= game.h/2 and self.vy < 0:
+            game.y += self.vy
         
         # On player collision
         for e in game.enemies:
             if self.distance(e) <= self.r + e.r: # Update the timer on every collision
                 self.endTime = time.time()
-            if round(self.endTime - self.startTime, 1) >= 0.3: # Also check if the invuln has expired yet
+            if round(self.endTime - self.startTime, 1) >= 1: # You can only get damaged once per second
                 self.recentlyDamaged = False
             
             if self.distance(e) <= self.r + e.r and self.recentlyDamaged == False: # If you hit an enemy, you take damage
@@ -109,6 +130,19 @@ class Quote(Creature):
                 del g
                 game.gunAcquired = True
                 game.quote = Quote(200,525,75,self.g,"quotewithPS.png",128,120,4)
+                
+        for x in game.xpdrops:
+            if self.distance(x) <= self.r + x.r:
+                self.currentXP += 40
+                game.xpdrops.remove(x)
+                del x
+                self.levelUp()
+                
+    def levelUp(self):
+        if self.currentXP >= 100:
+            self.currentLevel += 1
+            self.currentXP = self.currentXP - 100 # Extra XP carries over
+            game.equippedGuns[0].dmg += 2 # Leveling up increases gun damage
                 
         # for n in game.npcs:
         #     if self.distance(n) <= self.r + n.r and self.inDialog == True and self.midDialog == False:
@@ -161,8 +195,19 @@ class Bat(Enemy):
             
         self.y += self.vy
 
-class Gun: # Almost the same as Creature, but without needing frame count.
-    def __init__(self,x,y,r,g,img,w,h,fireRate):
+class Platform:
+    def __init__(self,x,y,w,h):
+        self.x=x
+        self.y=y
+        self.w=w
+        self.h=h 
+        self.img = loadImage(path+"/images/stonetile.png")
+        
+    def display(self):
+        image(self.img,self.x-game.x,self.y-game.y, self.w, self.h) 
+
+class Item:
+    def __init__(self,x,y,r,g,img,w,h):
         self.x=x
         self.y=y
         self.r=r
@@ -171,12 +216,9 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         self.vy=0
         self.w=w
         self.h=h
+        print(img)
         self.img = loadImage(path+"/images/"+img)
-        self.fireRate = fireRate
-        self.gunReloading = False
-        self.reloadStart = time.time()
-        self.reloadEnd = time.time()
-
+        
     def gravity(self):
         if self.y+self.r < self.g:
             self.vy += 0.3
@@ -198,10 +240,21 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         stroke(255)
         noFill()
         ellipse(self.x,self.y,2*self.r,2*self.r)
+
+class Gun(Item): # Almost the same as Creature, but without needing frame count.
+    def __init__(self,x,y,r,g,img,w,h,dmg,fireRate):
+        Item.__init__(self,x,y,r,g,img, w,h)
+        self.vx = 0
+        self.vy = 0
+        self.dmg = dmg
+        self.fireRate = fireRate
+        self.gunReloading = False
+        self.reloadStart = time.time()
+        self.reloadEnd = time.time()
         
     def fire(self):    
         if self.gunReloading == False:
-            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8, 5))
+            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
             self.gunReloading = True
             self.reloadStart = time.time()
             self.reload()
@@ -210,34 +263,45 @@ class Gun: # Almost the same as Creature, but without needing frame count.
         if (self.reloadEnd - self.reloadStart) >= self.fireRate:
             self.gunReloading = False
         
+class XPDrop(Item):
+    def __init__(self,x,y,r,g,img, w,h):
+        Item.__init__(self,x,y,r,g,img, w,h)
+        self.vx = 0
+        self.vy = 0
 
 class Bullet(Creature):
-    def __init__(self,x,y,r,g,img,w,h,F,vx, dmg):
+    def __init__(self,x,y,r,g,img,w,h,F,vx):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
-        self.dmg = dmg
         self.vx = vx
         self.dir = vx
         self.ttl = 60
         
     def update(self):
+        # self.dmgNumberEnd = time.time()
         self.x += self.vx
         self.ttl -= 1
+        
         if self.ttl == 0:
             game.bullets.remove(self)
             del self
             return
-        
+                
         for e in game.enemies:
             if self.distance(e) <= self.r + e.r: # If a bullet hits an enemy, the enemy takes damage
-                e.health -= self.dmg
+                e.health -= game.equippedGuns[0].dmg                    
+                # self.dmgNumberStart = time.time()
+                game.enemyHit = True
+                # textSize(48)
+                # fill(255)
+                # text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
                 game.bullets.remove(self)
                 del self
                 if e.health <= 0:
                     game.enemies.remove(e)
+                    for i in range(3):
+                        game.xpdrops.append(XPDrop(e.x - i*25, e.y, 23, game.g, "xpdrop.png", 46, 46))
                     del e
-                    game.quote.currentXP += 10
-                return
-        
+                                    
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
         
@@ -246,17 +310,25 @@ class Game:
         self.w=w
         self.h=h
         self.g=g
+        self.x = 0
+        self.y = 0
         self.gunAcquired = False
-        self.quote = Quote(50,50,75,self.g,"quote.png",120,120,4)
+        self.quote = Quote(50,self.g,75,self.g,"quote.png",120,120,4)
         self.npcs = []
-        self.npcs.append(NPC(400,50,75,self.g, "curlybrace.png",125,125,6))
+        self.npcs.append(NPC(200,50,75,self.g, "curlybrace.png",125,125,6))
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
         self.guns = [] # Guns lying on the ground
-        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75, 0.3)) 
+        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75, 5, 0.1)) 
         self.equippedGuns = [] # Guns equipped by the player   
         self.bullets = []
+        self.dmgNumberStart = 0
+        self.enemyHit = False
+        self.xpdrops = []
         self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
+        self.platforms=[]
+        for i in range(3):
+            self.platforms.append(Platform(250+i*250,450-150*i,200,50))
         
     def display(self):
         stroke(255)
@@ -265,7 +337,10 @@ class Game:
         self.quote.display()
         if self.quote.inDialog == True:
             self.dialogBox.display()
-        
+            
+        for p in self.platforms:
+            p.display()
+                    
         for g in self.guns:
             g.display()
 
@@ -274,9 +349,24 @@ class Game:
             
         for b in self.bullets:
             b.display()
+            # print(self.enemyHit)
+            # if self.enemyHit == True or self.dmgNumberStart != 0:
+            #     print('in loop')
+            #     self.dmgNumberStart = time.time()
+            #     textSize(48)
+            #     fill(255)
+            #     text(str(game.equippedGuns[0].dmg), b.x - 10, b.y - 10)
+            #     game.bullets.remove(b)
+            #     del b
+            # if time.time() == self.dmgNumberStart + 2:
+            #     self.enemyHit = False
+            
             
         for n in self.npcs:
             n.display()
+            
+        for x in self.xpdrops:
+            x.display()
         
         # Experience bar; starts empty
         fill(102,0,51) # Colour of the full bar
@@ -289,7 +379,13 @@ class Game:
         rect(50,60,100,20) # The full bar
         fill(255,0,0) # Colour of the current progress
         rect(50,60,min(self.quote.currentHealth * 1, 100), 20) # Current progress
-        
+
+        # Current level; starts at 1
+        textSize(36)
+        fill(255)
+        text(str(game.quote.currentLevel), 20, 50)        
+                        
+        # Current lives; starts at 3
         textSize(36)
         fill(255)
         text(str(game.quote.currentLives), 20, 80)
