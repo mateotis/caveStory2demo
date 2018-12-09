@@ -46,13 +46,15 @@ class Creature:
     def display(self):
         self.update()
         
+        # Animation
         if isinstance (self, Bat):
             self.f = (self.f+0.3)%self.F
         elif self.vx != 0:
             self.f = (self.f+0.3)%self.F
         else:
             self.f = 3
-            
+        
+        # Horizontal movement
         if self.dir > 0:
             image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,int(self.f)*self.w,0,int(self.f+1)*self.w,self.h)
         elif self.dir < 0:
@@ -126,10 +128,10 @@ class Quote(Creature):
         for g in game.guns:
             if self.distance(g) <= self.r + g.r:
                 game.equippedGuns.append(g) # Removes it from the floor, adds it to the equipped list
+                game.quote = Quote(g.x,game.g - 75,75,self.g,"quotewithPS.png",128,120,4) # Replaces original sprite with gun-equipped one
                 game.guns.remove(g)
                 del g
                 game.gunAcquired = True
-                game.quote = Quote(200,525,75,self.g,"quotewithPS.png",128,120,4)
                 
         for x in game.xpdrops:
             if self.distance(x) <= self.r + x.r:
@@ -143,13 +145,6 @@ class Quote(Creature):
             self.currentLevel += 1
             self.currentXP = self.currentXP - 100 # Extra XP carries over
             game.equippedGuns[0].dmg += 2 # Leveling up increases gun damage
-                
-        # for n in game.npcs:
-        #     if self.distance(n) <= self.r + n.r and self.inDialog == True and self.midDialog == False:
-        #         self.midDialog = True
-        #         print('in dialog')
-        #         game.display()
-        #         break
     
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
@@ -195,6 +190,55 @@ class Bat(Enemy):
             
         self.y += self.vy
 
+class Critter(Enemy):
+    def __init__(self,x,y,r,g,img,w,h,F,x1,x2,dmg,health):
+        Enemy.__init__(self,x,y,r,g,img,w,h,F,dmg,health)
+        self.x1=x1
+        self.x2=x2
+        self.vx = 2
+        
+    def update(self):
+        self.gravity()
+        
+        if int(random(100)) == 1 and self.y+self.r == self.g:
+            self.vy = -10
+            # self.jump.rewind()
+            # self.jump.play()
+            if self.x > self.x2:
+                self.vx = -2
+                self.dir = -1
+            elif self.x < self.x1:
+                self.vx = 2
+                self.dir = 1
+        
+        self.x += self.vx
+        self.y += self.vy
+        
+    def display(self):
+        self.update()
+        if self.dir > 0: # WIP; make sprite change directions
+            image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h, 0, 0, 98, 98)
+        elif self.dir < 0:
+            image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h, 0, 0, 98, 98)
+        
+        if game.quote.distance(self) <= 2 * (game.quote.r + self.r):
+            self.update()
+            if self.dir > 0:
+                image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,98,0,196,196)
+            elif self.dir < 0:
+                image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,98,0,196,196)
+         
+        if self.vy != 0:
+            if self.dir > 0:
+                image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,196,0,294,294)
+            elif self.dir < 0:
+                image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,196,0,294,294)
+                        
+        strokeWeight(5)
+        stroke(255)
+        noFill()
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+
 class Platform:
     def __init__(self,x,y,w,h):
         self.x=x
@@ -216,7 +260,6 @@ class Item:
         self.vy=0
         self.w=w
         self.h=h
-        print(img)
         self.img = loadImage(path+"/images/"+img)
         
     def gravity(self):
@@ -248,7 +291,7 @@ class Item:
         noFill()
         ellipse(self.x - game.x,self.y - game.y,2*self.r,2*self.r)
 
-class Gun(Item): # Almost the same as Creature, but without needing frame count.
+class Gun(Item):
     def __init__(self,x,y,r,g,img,w,h,dmg,fireRate):
         Item.__init__(self,x,y,r,g,img, w,h)
         self.vx = 0
@@ -282,9 +325,11 @@ class Bullet(Creature):
         self.vx = vx
         self.dir = vx
         self.ttl = 60
+        self.dmgNumberStart = 0
         
     def update(self):
-        # self.dmgNumberEnd = time.time()
+        self.dmgNumberEnd = time.time()
+        # self.dmgNumberDisplay()
         self.x += self.vx
         self.ttl -= 1
         
@@ -296,11 +341,13 @@ class Bullet(Creature):
         for e in game.enemies:
             if self.distance(e) <= self.r + e.r: # If a bullet hits an enemy, the enemy takes damage
                 e.health -= game.equippedGuns[0].dmg                    
-                # self.dmgNumberStart = time.time()
-                game.enemyHit = True
+                self.dmgNumberStart = time.time()
+                self.dmgNumberDisplay(e)
+                
                 # textSize(48)
                 # fill(255)
                 # text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
+    
                 game.bullets.remove(self)
                 del self
                 if e.health <= 0:
@@ -308,7 +355,15 @@ class Bullet(Creature):
                     for i in range(3):
                         game.xpdrops.append(XPDrop(e.x - i*25, e.y, 23, game.g, "xpdrop.png", 46, 46))
                     del e
-                                    
+                
+                    
+    def dmgNumberDisplay(self, e):
+        if self.dmgNumberEnd - self.dmgNumberStart >= 3:
+            textSize(48)
+            fill(255)
+            text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
+        
+        
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
         
@@ -320,11 +375,12 @@ class Game:
         self.x = 0
         self.y = 0
         self.gunAcquired = False
-        self.quote = Quote(50,self.g,75,self.g,"quote.png",120,120,4)
+        self.quote = Quote(50,self.g - 75,75,self.g,"quote.png",120,120,4)
         self.npcs = []
         self.npcs.append(NPC(200,50,75,self.g, "curlybrace.png",125,125,6))
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
+        self.enemies.append(Critter(300,200,45,self.g,"critter.png",98,98,3,100,1000,10,20))
         self.guns = [] # Guns lying on the ground
         self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75, 5, 0.1)) 
         self.equippedGuns = [] # Guns equipped by the player   
