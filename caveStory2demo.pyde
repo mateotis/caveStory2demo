@@ -2,6 +2,7 @@ add_library('minim')
 import os, time
 path=os.getcwd()
 player = Minim(this)
+# saveFile = open("saveGame.csv", "w")
 
 class Creature:
     def __init__(self,x,y,r,g,img,w,h,F):
@@ -25,14 +26,30 @@ class Creature:
                 self.vy = self.g - (self.y+self.r)
         else:
             self.vy = 0
-            
-        for p in game.platforms:
-            if self.x in range(p.x, p.x+p.w) and self.y+self.r <= p.y:
-                self.g = p.y
-                break
-            else:
-                self.g = game.g
+        
+        # if isinstance(self, Quote):
+        #     for t in game.tiles:
+        #         self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+        #         print(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+        #         if self.x in range(t.x, t.x+t.w) and self.y+self.r <= t.y:
+        #             self.g = t.y
+        #             break
+        #         else:
+        #             self.g = game.g
+                        
+        #     for t in game.tiles: #WIP; doesn't currently work.
+        #         print(game.quote.bottomCollided)
+        #         if game.quote.bottomCollided == True:
+        #             print('inloop')
+        #             game.quote.vy = 1
+        #             self.gravity()
                 
+        # for t in game.tiles:
+        #     if self.x in range(t.x, t.x+t.w) and self.y+self.r <= t.y:
+        #         self.g = t.y
+        #         break
+        #     else:
+        #         self.g = game.g
     
     def update(self):
         self.gravity()
@@ -75,6 +92,8 @@ class Quote(Creature):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
         self.recentlyDamaged = False
         self.inDialog = False
+        self.rightCollided = False
+        self.leftCollided = False
         self.timerSet = False
         self.startTime = time.time()
         self.endTime = time.time()
@@ -85,11 +104,14 @@ class Quote(Creature):
         self.keyHandler={LEFT:False, RIGHT:False, UP:False}
     def update(self):
         self.gravity()
-        
-        if self.keyHandler[LEFT]:
+
+        for t in game.tiles: #WIP: Move functionality to Creature class
+            self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+
+        if self.keyHandler[LEFT] and self.rightCollided == False:
             self.vx = -5
             self.dir = -1
-        elif self.keyHandler[RIGHT]:
+        elif self.keyHandler[RIGHT] and self.leftCollided == False:
             self.vx = 5
             self.dir = 1
         else:
@@ -97,6 +119,12 @@ class Quote(Creature):
         
         if self.keyHandler[UP] and self.y+self.r == self.g:
             self.vy = -10
+        
+        # for t in game.tiles:
+        #     if self.bottomCollided == True:
+        #         print('inloop')
+        #         self.vy = 1
+        #         self.gravity()
         
         self.x += self.vx
         self.y += self.vy
@@ -137,29 +165,60 @@ class Quote(Creature):
                 self.currentXP += 40
                 game.xpdrops.remove(x)
                 del x
-                self.levelUp()
-                
-        for t in game.tiles:
-            if self.x == t.x:
-                print('in loop')
-                self.vx = 0
-                self.vy = 0
+                self.levelUp()                
                 
     def levelUp(self):
         if self.currentXP >= 100:
             self.currentLevel += 1
             self.currentXP = self.currentXP - 100 # Extra XP carries over
             game.equippedGuns[0].dmg += 2 # Leveling up increases gun damage
-                
-        # for n in game.npcs:
-        #     if self.distance(n) <= self.r + n.r and self.inDialog == True and self.midDialog == False:
-        #         self.midDialog = True
-        #         print('in dialog')
-        #         game.display()
-        #         break
     
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
+
+    def hitWall(self,x,y,r,x1,y1,w,h): 
+        
+        # Test values
+        self.testX = x
+        self.testY = y
+    
+    # Check sides and set type of collision
+        if x < x1:
+            self.testX = x1
+            self.leftCollided = True
+        elif x > x1+w:
+            self.testX = x1+w 
+            self.rightCollided = True
+        if y < y1:
+            self.testY = y1
+            self.topCollided = True
+        elif y > y1+h:
+            self.testY = y1+h
+            self.bottomCollided = True
+    
+    # Calculate distance
+        self.distX = x-self.testX
+        self.distY = y-self.testY
+        # print(self.distX, self.distY)
+        distance = sqrt( (self.distX*self.distX) + (self.distY*self.distY) )
+        
+        # Collision
+        if distance <= r:
+            if self.leftCollided == True:
+                self.rightCollided = False
+            elif self.rightCollided == True:
+                self.leftCollided = False
+            elif self.topCollided == True:
+                self.bottomCollided = False
+            elif self.bottomCollided == True:
+                self.topCollided = False
+            return True
+        # If there's no collision, reset the values
+        self.rightCollided = False
+        self.leftCollided = False
+        self.topCollided = False
+        self.bottomCollided = False
+        return False
 
 class NPC(Creature):
     def __init__(self,x,y,r,g,img,w,h,F):
@@ -266,18 +325,17 @@ class Tile:
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
+        #ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
+        #line(self.x-game.x, self.y-game.y, self.x-game.x, self.y+self.w-game.y) # Left wall
+        rect(self.x-game.x, self.y-game.y,self.w,self.h)
 
-class Platform:
+class Platform(Tile):
     def __init__(self,x,y,w,h):
         self.x=x
         self.y=y
         self.w=w
         self.h=h 
         self.img = loadImage(path+"/images/stonetile.png")
-        
-    def display(self):
-        image(self.img,self.x-game.x,self.y-game.y, self.w, self.h) 
 
 class Item:
     def __init__(self,x,y,r,g,img,w,h):
@@ -289,7 +347,6 @@ class Item:
         self.vy=0
         self.w=w
         self.h=h
-        print(img)
         self.img = loadImage(path+"/images/"+img)
         
     def gravity(self):
@@ -300,7 +357,7 @@ class Item:
         else:
             self.vy = 0 #-10
             
-        for p in game.platforms:
+        for p in game.tiles:
             if self.x in range(p.x, p.x+p.w) and self.y+self.r <= p.y:
                 self.g = p.y
                 break
@@ -361,7 +418,7 @@ class Bullet(Creature):
             return
                 
         for e in game.enemies:
-            if len(game.bullets) != 0: # Sanity check; sometimes the game crashed when hitting an enemy from too close
+            if len(game.bullets) > 0: # Sanity check; sometimes the game crashed when hitting an enemy from too close
                 if self.distance(e) <= self.r + e.r: # If a bullet hits an enemy, the enemy takes damage
                     e.health -= game.equippedGuns[0].dmg                    
                     # self.dmgNumberStart = time.time()
@@ -410,10 +467,9 @@ class Game:
         self.xpdrops = []
         self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
         self.tiles = []
-        self.tiles.append(Tile(500, self.g - 200, 295, 145, 50))
-        self.platforms=[]
-        for i in range(5):
-            self.platforms.append(Platform(250+i*250,450-150*i,200,50))
+        self.tiles.append(Tile(800, self.g - 150, 294, 145, 50))
+        # for i in range(5):
+        #     self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
     def display(self):
         stroke(255)
@@ -422,9 +478,6 @@ class Game:
         self.quote.display()
         if self.quote.inDialog == True:
             self.dialogBox.display()
-            
-        for p in self.platforms:
-            p.display()
             
         for t in self.tiles:
             t.display()
@@ -516,6 +569,8 @@ def keyPressed():
                 game.quote.inDialog = True
                 game.display()
                 break
+        # for e in game.enemies:
+        #     saveFile.write(str(e.r))
 
 
 def keyReleased():
