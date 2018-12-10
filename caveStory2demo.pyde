@@ -18,38 +18,32 @@ class Creature:
         self.f=0 # Cycles through frames
         self.img = loadImage(path+"/images/"+img)
         self.dir = 1 # Direction of image
+        self.leftCollided = False # These values are here as fallbacks, in case a movement check happens before hitWall is called
+        self.rightCollided = False
+        self.topCollided = False
+        self.bottomCollided = False
     
     def gravity(self):
+        for t in game.tiles:
+            self.hitWall(self.x,self.y,self.r,t.x,t.y,t.w,t.h)
         if self.y+self.r < self.g:
             self.vy += 0.3
             if self.vy > self.g - (self.y+self.r):
                 self.vy = self.g - (self.y+self.r)
         else:
             self.vy = 0
-        
-        # if isinstance(self, Quote):
-        #     for t in game.tiles:
-        #         self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
-        #         print(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
-        #         if self.x in range(t.x, t.x+t.w) and self.y+self.r <= t.y:
-        #             self.g = t.y
-        #             break
-        #         else:
-        #             self.g = game.g
-                        
-        #     for t in game.tiles: #WIP; doesn't currently work.
-        #         print(game.quote.bottomCollided)
-        #         if game.quote.bottomCollided == True:
-        #             print('inloop')
-        #             game.quote.vy = 1
-        #             self.gravity()
                 
-        # for t in game.tiles:
-        #     if self.x in range(t.x, t.x+t.w) and self.y+self.r <= t.y:
-        #         self.g = t.y
-        #         break
-        #     else:
-        #         self.g = game.g
+        for t in game.tiles:
+            if self.topCollided == True:
+                self.g = t.y
+                break
+            else:
+                self.g = game.g
+                
+        for t in game.tiles: # Bounce back down off tile's bottom
+            if self.bottomCollided == True:
+                self.vy = 1
+                
     
     def update(self):
         self.gravity()
@@ -80,6 +74,50 @@ class Creature:
         stroke(255)
         noFill()
         ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        
+    def hitWall(self,x,y,r,x1,y1,w,h): 
+        # Test values
+        self.testX = x
+        self.testY = y
+    
+        # Check sides and set type of collision
+        if x < x1:
+            self.testX = x1
+            self.leftCollided = True
+        elif x > x1+w:
+            self.testX = x1+w 
+            self.rightCollided = True
+        if y < y1:
+            self.testY = y1
+            self.topCollided = True
+        elif y > y1+h:
+            self.testY = y1+h
+            self.bottomCollided = True
+    
+        # Calculate distance
+        self.distX = x-self.testX
+        self.distY = y-self.testY
+        # print(self.distX, self.distY)
+        distance = sqrt( (self.distX*self.distX) + (self.distY*self.distY) )
+        
+        # Collision
+        if distance <= r:
+            if self.leftCollided == True:
+                self.rightCollided = False
+            elif self.rightCollided == True:
+                self.leftCollided = False
+            elif self.topCollided == True:
+                self.bottomCollided = False
+            elif self.bottomCollided == True:
+                self.topCollided = False
+            return True
+        
+        # If there's no collision, reset the values
+        self.rightCollided = False
+        self.leftCollided = False
+        self.topCollided = False
+        self.bottomCollided = False
+        return False
 
 class Enemy(Creature):
     def __init__(self,x,y,r,g,img,w,h,F,dmg,health): 
@@ -105,7 +143,7 @@ class Quote(Creature):
     def update(self):
         self.gravity()
 
-        for t in game.tiles: #WIP: Move functionality to Creature class
+        for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
 
         if self.keyHandler[LEFT] and self.rightCollided == False:
@@ -117,7 +155,7 @@ class Quote(Creature):
         else:
             self.vx = 0
         
-        if self.keyHandler[UP] and self.y+self.r == self.g:
+        if self.keyHandler[UP] and (self.y+self.r == self.g or self.y+self.r >= self.g - 5 or self.y+self.r >= self.g + 5): # Added some leeway to the calculation so you can jump on tiles
             self.vy = -10
         
         # for t in game.tiles:
@@ -176,50 +214,6 @@ class Quote(Creature):
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
 
-    def hitWall(self,x,y,r,x1,y1,w,h): 
-        
-        # Test values
-        self.testX = x
-        self.testY = y
-    
-    # Check sides and set type of collision
-        if x < x1:
-            self.testX = x1
-            self.leftCollided = True
-        elif x > x1+w:
-            self.testX = x1+w 
-            self.rightCollided = True
-        if y < y1:
-            self.testY = y1
-            self.topCollided = True
-        elif y > y1+h:
-            self.testY = y1+h
-            self.bottomCollided = True
-    
-    # Calculate distance
-        self.distX = x-self.testX
-        self.distY = y-self.testY
-        # print(self.distX, self.distY)
-        distance = sqrt( (self.distX*self.distX) + (self.distY*self.distY) )
-        
-        # Collision
-        if distance <= r:
-            if self.leftCollided == True:
-                self.rightCollided = False
-            elif self.rightCollided == True:
-                self.leftCollided = False
-            elif self.topCollided == True:
-                self.bottomCollided = False
-            elif self.bottomCollided == True:
-                self.topCollided = False
-            return True
-        # If there's no collision, reset the values
-        self.rightCollided = False
-        self.leftCollided = False
-        self.topCollided = False
-        self.bottomCollided = False
-        return False
-
 class NPC(Creature):
     def __init__(self,x,y,r,g,img,w,h,F):
         Creature.__init__(self,x,y,r,g,img,w,h,F)    
@@ -253,8 +247,14 @@ class Bat(Enemy):
         self.dir = -1
         
     def update(self):
+        for t in game.tiles:
+            self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
         
-        if self.y < self.y1:
+        if self.topCollided == True:
+            self.vy = -3
+        elif self.bottomCollided == True:
+            self.vy = 3
+        elif self.y < self.y1:
             self.vy = 3
         elif self.y > self.y2:
             self.vy = -3
@@ -270,17 +270,23 @@ class Critter(Enemy):
         
     def update(self):
         self.gravity()
+        for t in game.tiles:
+            self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
         
-        if int(random(100)) == 1 and self.y+self.r == self.g:
+        if int(random(50)) == 1 and self.y+self.r == self.g and game.quote.distance(self) <= 2 * (game.quote.r + self.r):
             self.vy = -10
             # self.jump.rewind()
             # self.jump.play()
-            if self.x > self.x2:
-                self.vx = -2
-                self.dir = -1
-            elif self.x < self.x1:
-                self.vx = 2
-                self.dir = 1
+        if self.leftCollided == True: # Checks collisions first, then regular movement
+            self.vx = -2
+        elif self.rightCollided == True:
+            self.vx = 2
+        elif self.x > self.x2:
+            self.vx = -2
+            self.dir = -1
+        elif self.x < self.x1:
+            self.vx = 2
+            self.dir = 1
         
         self.x += self.vx
         self.y += self.vy
@@ -416,11 +422,16 @@ class Bullet(Creature):
             game.bullets.remove(self)
             del self
             return
+        
+        for t in game.tiles: # Bullet rams into tile
+            if len(game.bullets) > 0 and self.hitWall(self.x,self.y,self.r,t.x,t.y,t.y,t.h) == True:
+                game.bullets.remove(self)
+                del self
                 
         for e in game.enemies:
-            if len(game.bullets) > 0: # Sanity check; sometimes the game crashed when hitting an enemy from too close
-                if self.distance(e) <= self.r + e.r: # If a bullet hits an enemy, the enemy takes damage
-                    e.health -= game.equippedGuns[0].dmg                    
+            print(game.bullets)
+            if len(game.bullets) > 0 and self.distance(e) <= self.r + e.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
+                    e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
                     # self.dmgNumberStart = time.time()
                     game.enemyHit = True
                     # textSize(48)
@@ -434,7 +445,8 @@ class Bullet(Creature):
                         for i in range(3):
                             game.xpdrops.append(XPDrop(e.x - i*25, e.y, 23, game.g, "xpdrop.png", 46, 46))
                         del e
-                                    
+            
+            
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
 
@@ -467,7 +479,7 @@ class Game:
         self.xpdrops = []
         self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
         self.tiles = []
-        self.tiles.append(Tile(800, self.g - 150, 294, 145, 50))
+        self.tiles.append(Tile(300, self.g - 300, 294, 145, 50))
         # for i in range(5):
         #     self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
