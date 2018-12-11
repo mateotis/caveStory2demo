@@ -59,8 +59,10 @@ class Creature:
         
         if self.y >= game.h/2 and self.vy > 0:
             game.y += self.vy
+
         elif self.y >= game.h/2 and self.vy < 0:
             game.y += self.vy
+
         
     def display(self):
         self.update()
@@ -111,19 +113,19 @@ class Creature:
         if distance <= r:
             if self.leftCollided == True:
                 self.rightCollided = False
-                print('Left collision')
+                #print('Left collision')
                 return True
             elif self.rightCollided == True:
                 self.leftCollided = False
-                print('Right collision')
+                #print('Right collision')
                 return True
             elif self.topCollided == True:
                 self.bottomCollided = False
-                print('Top collision')
+                #print('Top collision')
                 return True
             elif self.bottomCollided == True:
                 self.topCollided = False
-                print('Bottom collision')
+                #print('Bottom collision')
                 return True
             #return True
         
@@ -153,7 +155,10 @@ class Quote(Creature):
         self.currentLives = 3
         self.currentLevel = 1
         self.currentHealth = 100
+        self.maxHealth = 100
         self.currentXP = 0
+        self.displayedXP = 0 # Specifically for the XP display
+        self.maxXP = 300
         self.keyHandler={LEFT:False, RIGHT:False, UP:False}
     def update(self):
         self.gravity()
@@ -182,8 +187,10 @@ class Quote(Creature):
             
         if self.y >= game.h/2:
             game.y += self.vy
+            game.setY = game.y # The camera resets to this variable
         elif self.y <= game.h/2:
             game.y += self.vy
+            game.setY = game.y # The camera resets to this variable
         
         # On player collision
         for e in game.enemies:
@@ -198,7 +205,7 @@ class Quote(Creature):
                 self.startTime = time.time()
                 if self.currentHealth <= 0 and self.currentLives > 0:
                     self.currentLives -= 1
-                    self.currentHealth = 100
+                    self.currentHealth = self.maxHealth
 
         for g in game.guns:
             if self.distance(g) <= self.r + g.r:
@@ -210,10 +217,13 @@ class Quote(Creature):
                 
         for x in game.xpdrops:
             if self.distance(x) <= self.r + x.r:
-                self.currentXP += 40
+                if self.currentXP + 60 <= self.maxXP: # Can only get XP to a certain level
+                    self.currentXP += 60
+                    self.displayedXP += 60
+                    print(self.currentXP)
+                    self.levelUp() 
                 game.xpdrops.remove(x)
                 del x
-                self.levelUp()  
                 
         for h in game.heartdrops:
             if self.distance(h) <= self.r + h.r:
@@ -222,10 +232,11 @@ class Quote(Creature):
                 del h
                 
     def levelUp(self):
-        if self.currentXP >= 100:
+        if self.currentXP >= 100 * self.currentLevel:
             self.currentLevel += 1
-            self.currentXP = self.currentXP - 100 # Extra XP carries over
+            self.displayedXP = self.displayedXP - 100 # Extra XP carries over
             game.equippedGuns[0].dmg += 2 # Leveling up increases gun damage
+            print(game.equippedGuns[0].dmg)
     
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
@@ -240,12 +251,14 @@ class NPC(Creature):
         self.y += self.vy
 
 class DialogBox:
-    def __init__(self,x,y,w,h, img):
+    def __init__(self,x,y,w,h,speaker,img,msg):
         self.x=x
         self.y=y
         self.w=w
         self.h=h
-        self.img = loadImage(path+"/images/"+img)
+        self.speaker = speaker # NPC's name who says the dialog
+        self.img = loadImage(path+"/images/"+img) # NPC's image
+        self.msg = msg
         
     def display(self):
         textSize(80)
@@ -253,7 +266,7 @@ class DialogBox:
         rect(self.x, self.y, self.w, self.h)
         image(self.img, self.x, self.y)
         fill(255)
-        text("Hi Quote!", self.x + 200, self.y + 100)
+        text(self.msg, self.x + 200, self.y + 100)
 
 class Bat(Enemy):
     def __init__(self,x,y,r,g,img,w,h,F,y1,y2,dmg,health):
@@ -450,7 +463,6 @@ class Bullet(Creature):
                     break
                 
         for e in game.enemies:
-            print(game.bullets)
             if len(game.bullets) > 0 and self.distance(e) <= self.r + e.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
                     e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
                     # self.dmgNumberStart = time.time()
@@ -458,9 +470,7 @@ class Bullet(Creature):
                     # textSize(48)
                     # fill(255)
                     # text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
-                    print('deleting')
                     game.bullets.remove(self)
-                    print(game.bullets)
                     if e.health >= 0:
                         break
                     elif e.health <= 0:
@@ -495,6 +505,7 @@ class Game:
         self.g=g
         self.x = 0
         self.y = 0
+        self.setY = 0
         self.gunAcquired = False
         self.quote = Quote(50,self.g - 75,75,self.g,"quote.png",120,120,4)
         self.npcs = []
@@ -510,7 +521,10 @@ class Game:
         self.enemyHit = False
         self.xpdrops = []
         self.heartdrops = []
-        self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
+        self.dialogBoxes = []
+        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Hi Quote!"))
+        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "It's me, Curly!"))
+        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "This is a test!"))
         self.tiles = []
         self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
         for i in range(5):
@@ -522,7 +536,8 @@ class Game:
             
         self.quote.display()
         if self.quote.inDialog == True:
-            self.dialogBox.display()
+            for t in self.dialogBoxes:
+                t.display()
             
         for t in self.tiles:
             t.display()
@@ -561,7 +576,7 @@ class Game:
         fill(102,0,51) # Colour of the full bar
         rect(50,30,100,20) # The full bar
         fill(255,255,0) # Colour of the current progress
-        rect(50,30,min(self.quote.currentXP * 1, 100), 20) # Current progress
+        rect(50,30,min(self.quote.displayedXP * 1, 100), 20) # Current progress
         
         # Health bar; starts full
         fill(102,0,51) # Colour of the full bar
@@ -603,11 +618,17 @@ def keyPressed():
         game.quote.keyHandler[LEFT]=True
     elif keyCode == RIGHT:
         game.quote.keyHandler[RIGHT]=True
-    elif keyCode == UP:
+    elif keyCode == 67:
         game.quote.keyHandler[UP]=True
-    elif keyCode == 32 and game.gunAcquired == True:
+    elif keyCode == 88 and game.gunAcquired == True:
         for g in game.equippedGuns:
             g.fire()
+    elif keyCode == UP: # Moves camera
+        if game.y >= game.setY:
+            game.y += -10
+    elif keyCode == DOWN:
+        if game.y <= game.setY:
+            game.y += 10
     elif key == ENTER:
         for n in game.npcs:
             if (game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == True) or game.quote.inDialog == True: # If in dialog, close dialog box.
@@ -626,5 +647,9 @@ def keyReleased():
         game.quote.keyHandler[LEFT]=False
     elif keyCode == RIGHT:
         game.quote.keyHandler[RIGHT]=False   
-    elif keyCode == UP:
+    elif keyCode == 67:
         game.quote.keyHandler[UP]=False
+    elif keyCode == UP: # Moves camera back to original position
+        game.y = game.setY
+    elif keyCode == DOWN:
+        game.y = game.setY
