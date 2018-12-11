@@ -25,7 +25,9 @@ class Creature:
     
     def gravity(self):
         for t in game.tiles:
-            self.hitWall(self.x,self.y,self.r,t.x,t.y,t.w,t.h)
+            self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+            if self.hittingWall == True:
+                break
         if self.y+self.r < self.g:
             self.vy += 0.3
             if self.vy > self.g - (self.y+self.r):
@@ -34,11 +36,17 @@ class Creature:
             self.vy = 0
                 
         for t in game.tiles:
-            if self.topCollided == True:
-                self.g = t.y
-                break
-            else:
-                self.g = game.g
+            self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+            if self.hittingWall == True:
+                if self.topCollided == True:
+                    self.g = t.y
+                    break
+                else:
+                    self.g = game.g
+                    break
+            # elif self.hittingWall == False:
+            #     self.g = game.g
+            #     break             
                 
         for t in game.tiles: # Bounce back down off tile's bottom
             if self.bottomCollided == True:
@@ -75,7 +83,7 @@ class Creature:
         noFill()
         ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
         
-    def hitWall(self,x,y,r,x1,y1,w,h): 
+    def hitWall(self,x,y,r,x1,y1,w,h): # Checks for collision with tiles
         # Test values
         self.testX = x
         self.testY = y
@@ -83,33 +91,49 @@ class Creature:
         # Check sides and set type of collision
         if x < x1:
             self.testX = x1
+            # if isinstance(self, Quote):
             self.leftCollided = True
+            # elif isinstance(Creature, Bat):
+            #     self.batLeftCollided = True
         elif x > x1+w:
             self.testX = x1+w 
+            # if isinstance(self, Quote):
             self.rightCollided = True
+            # elif isinstance(Creature, Bat):
+            #     self.batRightCollided = True
         if y < y1:
             self.testY = y1
+            # if isinstance(self, Quote):
             self.topCollided = True
+            # elif isinstance(Creature, Bat):
+            #     self.batTopCollided = True
         elif y > y1+h:
             self.testY = y1+h
+            # if isinstance(self, Quote):
             self.bottomCollided = True
+            # elif isinstance(Creature, Bat):
+            #     self.batBottomCollided = True
     
         # Calculate distance
         self.distX = x-self.testX
         self.distY = y-self.testY
         # print(self.distX, self.distY)
-        distance = sqrt( (self.distX*self.distX) + (self.distY*self.distY) )
+        distance = sqrt((self.distX ** 2) + (self.distY ** 2))
         
         # Collision
         if distance <= r:
             if self.leftCollided == True:
                 self.rightCollided = False
+                print('Left collision')
             elif self.rightCollided == True:
                 self.leftCollided = False
+                print('Right collision')
             elif self.topCollided == True:
                 self.bottomCollided = False
+                print('Top collision')
             elif self.bottomCollided == True:
                 self.topCollided = False
+                print('Bottom collision')
             return True
         
         # If there's no collision, reset the values
@@ -117,6 +141,10 @@ class Creature:
         self.leftCollided = False
         self.topCollided = False
         self.bottomCollided = False
+        # self.rightBatCollided = False
+        # self.leftBatCollided = False
+        # self.topBatCollided = False
+        # self.bottomBatCollided = False
         return False
 
 class Enemy(Creature):
@@ -145,7 +173,8 @@ class Quote(Creature):
 
         for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
-
+            if self.hittingWall == True:
+                break
         if self.keyHandler[LEFT] and self.rightCollided == False:
             self.vx = -5
             self.dir = -1
@@ -157,12 +186,6 @@ class Quote(Creature):
         
         if self.keyHandler[UP] and (self.y+self.r == self.g or self.y+self.r >= self.g - 5 or self.y+self.r >= self.g + 5): # Added some leeway to the calculation so you can jump on tiles
             self.vy = -10
-        
-        # for t in game.tiles:
-        #     if self.bottomCollided == True:
-        #         print('inloop')
-        #         self.vy = 1
-        #         self.gravity()
         
         self.x += self.vx
         self.y += self.vy
@@ -248,8 +271,9 @@ class Bat(Enemy):
         
     def update(self):
         for t in game.tiles:
-            self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
-        
+            self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+            if self.hittingWall == True:
+                break
         if self.topCollided == True:
             self.vy = -3
         elif self.bottomCollided == True:
@@ -271,7 +295,9 @@ class Critter(Enemy):
     def update(self):
         self.gravity()
         for t in game.tiles:
-            self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+            self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+            if self.hittingWall == True:
+                break
         
         if int(random(50)) == 1 and self.y+self.r == self.g and game.quote.distance(self) <= 2 * (game.quote.r + self.r):
             self.vy = -10
@@ -479,9 +505,9 @@ class Game:
         self.xpdrops = []
         self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
         self.tiles = []
-        self.tiles.append(Tile(300, self.g - 300, 294, 145, 50))
-        # for i in range(5):
-        #     self.tiles.append(Platform(250+i*250,450-150*i,200,50))
+        # self.tiles.append(Tile(600, self.g - 150, 294, 145, 50))
+        for i in range(5):
+            self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
     def display(self):
         stroke(255)
