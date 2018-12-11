@@ -270,7 +270,7 @@ class NPC(Creature):
         ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
 
 class DialogBox:
-    def __init__(self,x,y,w,h,speaker,img,msg):
+    def __init__(self,x,y,w,h,speaker,img,msg,txtSize):
         self.x=x
         self.y=y
         self.w=w
@@ -278,9 +278,11 @@ class DialogBox:
         self.speaker = speaker # NPC's name who says the dialog
         self.img = loadImage(path+"/images/"+img) # NPC's image
         self.msg = msg
+        self.txtSize = txtSize
         
     def display(self):
-        textSize(80)
+        self.txtSizeCalc = 60 - len(self.msg)
+        textSize(self.txtSizeCalc)
         fill(0)
         rect(self.x, self.y, self.w, self.h)
         image(self.img, self.x, self.y)
@@ -446,8 +448,10 @@ class Gun(Item): # Almost the same as Creature, but without needing frame count.
         self.reloadStart = time.time()
         self.reloadEnd = time.time()
         
-    def fire(self):    
-        if self.gunReloading == False:
+    def fire(self):
+        for t in game.tiles: # Fixes bug that let you shoot through walls when you were standing against them
+            self.hittingWall = game.quote.hitWall(game.quote.x, game.quote.y, game.quote.r, t.x, t.y, t.w, t.h)
+        if self.gunReloading == False and game.quote.leftCollided == False and game.quote.rightCollided == False:
             game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y + 30,10,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
             self.gunReloading = True
             self.reloadStart = time.time()
@@ -549,13 +553,13 @@ class Game:
         self.dialogBoxesCurly = [] # What actually gets displayed, box by box
         self.dialogBoxesMisery = []
         self.dialogBoxesBalrog = []
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Hi Quote!"))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "It's me, Curly!"))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "This is a test!"))
-        self.totalDBoxesMisery.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "This is Misery."))
-        self.totalDBoxesMisery.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "I'll be a boss one day."))
-        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Hi, I'm Balrog!"))
-        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Someone watched LotR."))
+        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Hi Quote!", 80))
+        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "It's me, Curly!", 72))
+        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "This is a test!", 70))
+        self.totalDBoxesMisery.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "This is Misery.", 70))
+        self.totalDBoxesMisery.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "I'll be a boss one day.", 60))
+        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Hi, I'm Balrog!", 72))
+        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Someone watched LotR.", 60))
         self.tiles = []
         self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
         # for i in range(5):
