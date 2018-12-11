@@ -112,16 +112,20 @@ class Creature:
             if self.leftCollided == True:
                 self.rightCollided = False
                 print('Left collision')
+                return True
             elif self.rightCollided == True:
                 self.leftCollided = False
                 print('Right collision')
+                return True
             elif self.topCollided == True:
                 self.bottomCollided = False
                 print('Top collision')
+                return True
             elif self.bottomCollided == True:
                 self.topCollided = False
                 print('Bottom collision')
-            return True
+                return True
+            #return True
         
         # If there's no collision, reset the values
         self.rightCollided = False
@@ -209,7 +213,13 @@ class Quote(Creature):
                 self.currentXP += 40
                 game.xpdrops.remove(x)
                 del x
-                self.levelUp()                
+                self.levelUp()  
+                
+        for h in game.heartdrops:
+            if self.distance(h) <= self.r + h.r:
+                self.currentHealth = 100
+                game.heartdrops.remove(h)
+                del h
                 
     def levelUp(self):
         if self.currentXP >= 100:
@@ -406,7 +416,7 @@ class Gun(Item): # Almost the same as Creature, but without needing frame count.
         
     def fire(self):    
         if self.gunReloading == False:
-            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y,50,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
+            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y + 30,10,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
             self.gunReloading = True
             self.reloadStart = time.time()
             self.reload()
@@ -433,9 +443,11 @@ class Bullet(Creature):
             return
         
         for t in game.tiles: # Bullet rams into tile
-            if len(game.bullets) > 0 and self.hitWall(self.x,self.y,self.r,t.x,t.y,t.y,t.h) == True:
-                game.bullets.remove(self)
-                del self
+            self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+            if self.hittingWall == True:
+                if len(game.bullets) > 0:
+                    game.bullets.remove(self)
+                    break
                 
         for e in game.enemies:
             print(game.bullets)
@@ -448,18 +460,29 @@ class Bullet(Creature):
                     # text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
                     print('deleting')
                     game.bullets.remove(self)
-                    del self
-                    if e.health <= 0:
+                    print(game.bullets)
+                    if e.health >= 0:
+                        break
+                    elif e.health <= 0:
                         game.enemies.remove(e)
                         for i in range(3):
                             game.xpdrops.append(XPDrop(e.x - i*25, e.y, 23, game.g, "xpdrop.png", 46, 46))
+                        if random(20) == 1:
+                            game.heartdrops.append(HeartDrop(e.x, e.y + 10, 43, game.g, "heartdrop.png", 46, 46))
                         del e
+                        break
             
             
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
 
 class XPDrop(Item):
+    def __init__(self,x,y,r,g,img, w,h):
+        Item.__init__(self,x,y,r,g,img, w,h)
+        self.vx = 0
+        self.vy = 0
+
+class HeartDrop(Item):
     def __init__(self,x,y,r,g,img, w,h):
         Item.__init__(self,x,y,r,g,img, w,h)
         self.vx = 0
@@ -475,20 +498,21 @@ class Game:
         self.gunAcquired = False
         self.quote = Quote(50,self.g - 75,75,self.g,"quote.png",120,120,4)
         self.npcs = []
-        self.npcs.append(NPC(200,50,75,self.g, "curlybrace.png",125,125,6))
+        self.npcs.append(NPC(300,50,75,self.g, "curlybrace.png",125,125,6))
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
         self.enemies.append(Critter(300,200,45,self.g,"critter.png",98,98,3,100,1000,10,20))
         self.guns = [] # Guns lying on the ground
-        self.guns.append(Gun(200,570,30,self.g - 20,"polarstar.png",109,75, 5, 0.1)) 
+        self.guns.append(Gun(200,self.g,30,self.g,"polarstar.png",109,75, 5, 0.1)) 
         self.equippedGuns = [] # Guns equipped by the player   
         self.bullets = []
         self.dmgNumberStart = 0
         self.enemyHit = False
         self.xpdrops = []
+        self.heartdrops = []
         self.dialogBox = DialogBox(100, 100, 700, 175, "curlybraceFace.png")
         self.tiles = []
-        # self.tiles.append(Tile(600, self.g - 150, 294, 145, 50))
+        self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
         for i in range(5):
             self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
@@ -529,6 +553,9 @@ class Game:
             
         for x in self.xpdrops:
             x.display()
+            
+        for h in self.heartdrops:
+            h.display()
         
         # Experience bar; starts empty
         fill(102,0,51) # Colour of the full bar
