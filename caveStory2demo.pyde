@@ -26,7 +26,7 @@ class Creature:
     def gravity(self):
         for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
-            if self.hittingWall == True:
+            if self.hittingWall == True: # It breaks if it finds one tile that's collided with, making it work with multiple tiles
                 break
         if self.y+self.r < self.g:
             self.vy += 0.3
@@ -38,19 +38,18 @@ class Creature:
         for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
             if self.hittingWall == True:
-                if self.topCollided == True:
+                if self.topCollided == True: # Only set gravity to tile y if collided from the top, else reset to ground level; this fixes gravity
                     self.g = t.y
                     break
                 else:
                     self.g = game.g
                     break
-            # elif self.hittingWall == False:
-            #     self.g = game.g
-            #     break             
+            elif self.hittingWall == False:
+                self.g = game.g           
                 
         for t in game.tiles: # Bounce back down off tile's bottom
             if self.bottomCollided == True:
-                self.vy = 1
+                self.vy = 0.1
                 
     
     def update(self):
@@ -91,28 +90,16 @@ class Creature:
         # Check sides and set type of collision
         if x < x1:
             self.testX = x1
-            # if isinstance(self, Quote):
             self.leftCollided = True
-            # elif isinstance(Creature, Bat):
-            #     self.batLeftCollided = True
         elif x > x1+w:
             self.testX = x1+w 
-            # if isinstance(self, Quote):
             self.rightCollided = True
-            # elif isinstance(Creature, Bat):
-            #     self.batRightCollided = True
         if y < y1:
             self.testY = y1
-            # if isinstance(self, Quote):
             self.topCollided = True
-            # elif isinstance(Creature, Bat):
-            #     self.batTopCollided = True
         elif y > y1+h:
             self.testY = y1+h
-            # if isinstance(self, Quote):
             self.bottomCollided = True
-            # elif isinstance(Creature, Bat):
-            #     self.batBottomCollided = True
     
         # Calculate distance
         self.distX = x-self.testX
@@ -141,10 +128,6 @@ class Creature:
         self.leftCollided = False
         self.topCollided = False
         self.bottomCollided = False
-        # self.rightBatCollided = False
-        # self.leftBatCollided = False
-        # self.topBatCollided = False
-        # self.bottomBatCollided = False
         return False
 
 class Enemy(Creature):
