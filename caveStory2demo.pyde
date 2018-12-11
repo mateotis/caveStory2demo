@@ -24,16 +24,10 @@ class Creature:
         self.bottomCollided = False
     
     def gravity(self):
-        for t in game.tiles:
-            self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
-            if self.hittingWall == True: # It breaks if it finds one tile that's collided with, making it work with multiple tiles
-                break
-        if self.y+self.r < self.g:
-            self.vy += 0.3
-            if self.vy > self.g - (self.y+self.r):
-                self.vy = self.g - (self.y+self.r)
-        else:
-            self.vy = 0
+        # for t in game.tiles:
+        #     self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+        #     if self.hittingWall == True: # It breaks if it finds one tile that's collided with, making it work with multiple tiles
+        #         break
                 
         for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
@@ -45,7 +39,14 @@ class Creature:
                     self.g = game.g
                     break
             elif self.hittingWall == False:
-                self.g = game.g           
+                self.g = game.g   
+                
+        if self.y+self.r < self.g:
+            self.vy += 0.3
+            if self.vy > self.g - (self.y+self.r):
+                self.vy = self.g - (self.y+self.r)
+        else:
+            self.vy = 0        
                 
         for t in game.tiles: # Bounce back down off tile's bottom
             if self.bottomCollided == True:
@@ -249,6 +250,15 @@ class NPC(Creature):
         self.gravity()
         self.x += self.vx
         self.y += self.vy
+        
+    def display(self):
+        self.update()
+        image(self.img,self.x-game.x,self.y-game.y, self.w, self.h)
+        
+        strokeWeight(5)
+        stroke(255)
+        noFill()
+        ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
 
 class DialogBox:
     def __init__(self,x,y,w,h,speaker,img,msg):
@@ -510,6 +520,8 @@ class Game:
         self.quote = Quote(50,self.g - 75,75,self.g,"quote.png",120,120,4)
         self.npcs = []
         self.npcs.append(NPC(300,50,75,self.g, "curlybrace.png",125,125,6))
+        self.npcs.append(NPC(500,50,45,self.g, "misery.png",125,125,6))
+        self.npcs.append(NPC(800,50,45,self.g, "balrog.png",240,150,6))
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
         self.enemies.append(Critter(300,200,45,self.g,"critter.png",98,98,3,100,1000,10,20))
@@ -525,10 +537,14 @@ class Game:
         self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Hi Quote!"))
         self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "It's me, Curly!"))
         self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "This is a test!"))
+        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "This is Misery."))
+        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "I'll be a boss one day."))
+        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Hi, I'm Balrog!"))
+        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Someone watched LotR."))
         self.tiles = []
         self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
-        for i in range(5):
-            self.tiles.append(Platform(250+i*250,450-150*i,200,50))
+        # for i in range(5):
+        #     self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
     def display(self):
         stroke(255)
