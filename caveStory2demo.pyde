@@ -147,9 +147,11 @@ class Quote(Creature):
     def __init__(self,x,y,r,g,img,w,h,F):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
         self.recentlyDamaged = False
-        self.inDialog = False
+        self.startingDialog = False
+        self.midDialog = False
         self.rightCollided = False
         self.leftCollided = False
+        self.selectedNPC = None
         self.timerSet = False
         self.startTime = time.time()
         self.endTime = time.time()
@@ -241,10 +243,17 @@ class Quote(Creature):
     
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
+    
+    def getNPC(self):
+        for n in game.npcs:
+            if self.distance(n) <= self.r + n.r:
+                self.selectedNPC = n.name
+                break
 
 class NPC(Creature):
-    def __init__(self,x,y,r,g,img,w,h,F):
-        Creature.__init__(self,x,y,r,g,img,w,h,F)    
+    def __init__(self,x,y,r,g,img,w,h,F, name):
+        Creature.__init__(self,x,y,r,g,img,w,h,F)
+        self.name = name    
         
     def update(self):
         self.gravity()
@@ -519,9 +528,9 @@ class Game:
         self.gunAcquired = False
         self.quote = Quote(50,self.g - 75,75,self.g,"quote.png",120,120,4)
         self.npcs = []
-        self.npcs.append(NPC(300,50,75,self.g, "curlybrace.png",125,125,6))
-        self.npcs.append(NPC(500,50,45,self.g, "misery.png",125,125,6))
-        self.npcs.append(NPC(800,50,45,self.g, "balrog.png",240,150,6))
+        self.npcs.append(NPC(300,50,75,self.g, "curlybrace.png",125,125,6, "curly"))
+        self.npcs.append(NPC(500,50,45,self.g, "misery.png",125,125,6, "misery"))
+        self.npcs.append(NPC(800,50,45,self.g, "balrog.png",240,150,6, "balrog"))
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
         self.enemies.append(Critter(300,200,45,self.g,"critter.png",98,98,3,100,1000,10,20))
@@ -533,27 +542,56 @@ class Game:
         self.enemyHit = False
         self.xpdrops = []
         self.heartdrops = []
-        self.dialogBoxes = []
-        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Hi Quote!"))
-        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "It's me, Curly!"))
-        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "This is a test!"))
-        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "This is Misery."))
-        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "I'll be a boss one day."))
-        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Hi, I'm Balrog!"))
-        self.dialogBoxes.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Someone watched LotR."))
+        self.dialogCount = 0
+        self.totalDBoxesCurly = [] # All of the dialogue gets loaded here at once
+        self.totalDBoxesMisery = []
+        self.totalDBoxesBalrog = []
+        self.dialogBoxesCurly = [] # What actually gets displayed, box by box
+        self.dialogBoxesMisery = []
+        self.dialogBoxesBalrog = []
+        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Hi Quote!"))
+        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "It's me, Curly!"))
+        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "This is a test!"))
+        self.totalDBoxesMisery.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "This is Misery."))
+        self.totalDBoxesMisery.append(DialogBox(100, 100, 700, 175, "misery", "miseryFace.png", "I'll be a boss one day."))
+        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Hi, I'm Balrog!"))
+        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Someone watched LotR."))
         self.tiles = []
         self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
         # for i in range(5):
         #     self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
+    def dialogProgress(self,name,cnt):
+        if name == "curly":
+            self.dialogBoxesCurly.append(self.totalDBoxesCurly[0 + cnt])
+            if cnt != 0:
+                self.dialogBoxesCurly.remove(self.totalDBoxesCurly[cnt - 1])
+                
+        elif name == "misery":
+            self.dialogBoxesMisery.append(self.totalDBoxesMisery[0 + cnt])
+            if cnt != 0:
+                self.dialogBoxesMisery.remove(self.totalDBoxesMisery[cnt - 1])
+                
+        elif name == "balrog":
+            self.dialogBoxesBalrog.append(self.totalDBoxesBalrog[0 + cnt])
+            if cnt != 0:
+                self.dialogBoxesBalrog.remove(self.totalDBoxesBalrog[cnt - 1])
+    
     def display(self):
         stroke(255)
         line(0,self.g - self.y,self.w,self.g - self.y)
             
         self.quote.display()
-        if self.quote.inDialog == True:
-            for t in self.dialogBoxes:
-                t.display()
+        if self.quote.midDialog == True:
+            if self.quote.selectedNPC == "curly":
+                for i in self.dialogBoxesCurly:
+                    i.display()
+            elif self.quote.selectedNPC == "misery":
+                for i in self.dialogBoxesMisery:
+                    i.display()
+            elif self.quote.selectedNPC == "balrog":
+                for i in self.dialogBoxesBalrog:
+                    i.display()
             
         for t in self.tiles:
             t.display()
@@ -647,13 +685,41 @@ def keyPressed():
             game.y += 10
     elif key == ENTER:
         for n in game.npcs:
-            if (game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == True) or game.quote.inDialog == True: # If in dialog, close dialog box.
-                game.quote.inDialog = False
+            if game.quote.distance(n) <= game.quote.r + n.r and (game.quote.startingDialog == False or game.quote.midDialog == True): # If not in dialog and near an NPC, open dialog box.
+                game.quote.getNPC()
+                print(game.quote.selectedNPC)
+                game.quote.startingDialog = True
+                game.quote.midDialog = True
+                if game.quote.selectedNPC == "curly":
+                    if game.dialogCount < len(game.totalDBoxesCurly):
+                        game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
+                        game.quote.midDialog = True
+                        game.dialogCount += 1
+                    else:
+                        game.quote.startingDialog = False
+                        game.quote.midDialog = False
+                        game.dialogCount = 0
+                elif game.quote.selectedNPC == "misery":
+                    if game.dialogCount < len(game.totalDBoxesMisery):
+                        game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
+                        game.quote.midDialog = True
+                        game.dialogCount += 1
+                    else:
+                        print('in loop')
+                        game.quote.startingDialog = False
+                        game.quote.midDialog = False
+                        game.dialogCount = 0
+                elif game.quote.selectedNPC == "balrog":
+                    if game.dialogCount < len(game.totalDBoxesBalrog):
+                        game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
+                        game.quote.midDialog = True
+                        game.dialogCount += 1
+                    else:
+                        game.quote.startingDialog = False
+                        game.quote.midDialog = False
+                        game.dialogCount = 0
                 game.display()
-            elif game.quote.distance(n) <= game.quote.r + n.r and game.quote.inDialog == False: # If not in dialog and near an NPC, open dialog box.
-                game.quote.inDialog = True
-                game.display()
-                break
+        game.display()
         # for e in game.enemies:
         #     saveFile.write(str(e.r))
 
