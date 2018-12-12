@@ -234,6 +234,12 @@ class Quote(Creature):
                 game.heartdrops.remove(h)
                 del h
                 
+        for h in game.heartcapsules:
+            if self.distance(h) <= self.r + h.r:
+                self.currentLives += 1
+                game.heartcapsules.remove(h)
+                del h
+                
     def levelUp(self):
         if self.currentXP >= 100 * self.currentLevel:
             self.currentLevel += 1
@@ -521,6 +527,10 @@ class HeartDrop(Item):
         self.vx = 0
         self.vy = 0
         
+class HeartCapsule(Item):
+    def __init__(self,x,y,r,g,img, w,h):
+        Item.__init__(self,x,y,r,g,img, w,h)
+        
 class Game:
     def __init__ (self,w,h,g):
         self.w=w
@@ -546,6 +556,8 @@ class Game:
         self.enemyHit = False
         self.xpdrops = []
         self.heartdrops = []
+        self.heartcapsules = []
+        self.heartcapsules.append(HeartCapsule(200, 100, 40, self.g, "heartcapsule.png", 96,76))
         self.dialogCount = 0
         self.totalDBoxesCurly = [] # All of the dialogue gets loaded here at once
         self.totalDBoxesMisery = []
@@ -611,6 +623,9 @@ class Game:
             x.display()
             
         for h in self.heartdrops:
+            h.display()
+        
+        for h in self.heartcapsules:
             h.display()
         
         # Experience bar; starts empty
