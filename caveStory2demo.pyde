@@ -566,20 +566,10 @@ class Game:
         #     self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
     def dialogProgress(self,name,cnt):
-        if name == "curly":
-            self.dialogBoxesCurly.append(self.totalDBoxesCurly[0 + cnt])
-            if cnt != 0:
-                self.dialogBoxesCurly.remove(self.totalDBoxesCurly[cnt - 1])
-                
-        elif name == "misery":
-            self.dialogBoxesMisery.append(self.totalDBoxesMisery[0 + cnt])
-            if cnt != 0:
-                self.dialogBoxesMisery.remove(self.totalDBoxesMisery[cnt - 1])
-                
-        elif name == "balrog":
-            self.dialogBoxesBalrog.append(self.totalDBoxesBalrog[0 + cnt])
-            if cnt != 0:
-                self.dialogBoxesBalrog.remove(self.totalDBoxesBalrog[cnt - 1])
+        if cnt < len(self.totalList):
+            self.displayList.append(self.totalList[0 + cnt])
+        if cnt != 0 and cnt < len(self.totalList):
+            self.displayList.remove(self.totalList[cnt - 1])
     
     def display(self):
         stroke(255)
@@ -587,15 +577,8 @@ class Game:
             
         self.quote.display()
         if self.quote.midDialog == True:
-            if self.quote.selectedNPC == "curly":
-                for i in self.dialogBoxesCurly:
-                    i.display()
-            elif self.quote.selectedNPC == "misery":
-                for i in self.dialogBoxesMisery:
-                    i.display()
-            elif self.quote.selectedNPC == "balrog":
-                for i in self.dialogBoxesBalrog:
-                    i.display()
+            for i in self.displayList:
+                i.display()
             
         for t in self.tiles:
             t.display()
@@ -671,7 +654,6 @@ def draw():
         
     
 def keyPressed():
-    # if game.quote.y+game.quote.r == game.quote.g: # Disallows movement when mid-air. WIP.
     if keyCode == LEFT:
         game.quote.keyHandler[LEFT]=True
     elif keyCode == RIGHT:
@@ -691,37 +673,20 @@ def keyPressed():
         for n in game.npcs:
             if game.quote.distance(n) <= game.quote.r + n.r and (game.quote.startingDialog == False or game.quote.midDialog == True): # If not in dialog and near an NPC, open dialog box.
                 game.quote.getNPC()
-                print(game.quote.selectedNPC)
                 game.quote.startingDialog = True
                 game.quote.midDialog = True
-                if game.quote.selectedNPC == "curly":
-                    if game.dialogCount < len(game.totalDBoxesCurly):
-                        game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
-                        game.quote.midDialog = True
-                        game.dialogCount += 1
-                    else:
-                        game.quote.startingDialog = False
-                        game.quote.midDialog = False
-                        game.dialogCount = 0
-                elif game.quote.selectedNPC == "misery":
-                    if game.dialogCount < len(game.totalDBoxesMisery):
-                        game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
-                        game.quote.midDialog = True
-                        game.dialogCount += 1
-                    else:
-                        print('in loop')
-                        game.quote.startingDialog = False
-                        game.quote.midDialog = False
-                        game.dialogCount = 0
-                elif game.quote.selectedNPC == "balrog":
-                    if game.dialogCount < len(game.totalDBoxesBalrog):
-                        game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
-                        game.quote.midDialog = True
-                        game.dialogCount += 1
-                    else:
-                        game.quote.startingDialog = False
-                        game.quote.midDialog = False
-                        game.dialogCount = 0
+                game.totalListName = "game.totalDBoxes" + game.quote.selectedNPC.capitalize()
+                game.displayListName = "game.dialogBoxes" + game.quote.selectedNPC.capitalize()
+                game.displayList = eval(game.displayListName) # Turns the string into a function expression
+                game.totalList = eval(game.totalListName)
+                if game.dialogCount < len(game.totalList):
+                    game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
+                    game.quote.midDialog = True
+                    game.dialogCount += 1
+                else:
+                    game.quote.startingDialog = False
+                    game.quote.midDialog = False
+                    game.dialogCount = 0
                 game.display()
         game.display()
         # for e in game.enemies:
