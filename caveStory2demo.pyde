@@ -204,6 +204,8 @@ class Quote(Creature):
             
             if self.distance(e) <= self.r + e.r and self.recentlyDamaged == False: # If you hit an enemy, you take damage
                 self.currentHealth -= e.dmg
+                # self.currentXP -= 10
+                # self.displayedXP -= 10
                 self.recentlyDamaged = True
                 self.startTime = time.time()
                 if self.currentHealth <= 0 and self.currentLives > 0:
@@ -268,12 +270,13 @@ class NPC(Creature):
         
     def display(self):
         self.update()
-        image(self.img,self.x-game.x,self.y-game.y, self.w, self.h)
+        image(self.img,self.x-self.r-game.x,self.y-self.r-game.y, self.w, self.h)
         
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        #ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
 
 class DialogBox:
     def __init__(self,x,y,w,h,speaker,img,msg,txtSize):
@@ -436,12 +439,12 @@ class Item:
     
     def display(self):
         self.update()
-        image(self.img,self.x - game.x,self.y - game.y)
+        image(self.img,self.x - self.r - game.x,self.y - self.r - game.y)
         
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
 
 class Gun(Item): # Almost the same as Creature, but without needing frame count.
     def __init__(self,x,y,r,g,img,w,h,dmg,fireRate):
@@ -496,9 +499,9 @@ class Bullet(Creature):
                     e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
                     # self.dmgNumberStart = time.time()
                     game.enemyHit = True
-                    # textSize(48)
-                    # fill(255)
-                    # text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
+                    textSize(48)
+                    fill(255)
+                    text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
                     game.bullets.remove(self)
                     if e.health >= 0:
                         break
@@ -542,14 +545,14 @@ class Game:
         self.gunAcquired = False
         self.quote = Quote(50,self.g - 75,75,self.g,"quote.png",120,120,4)
         self.npcs = []
-        self.npcs.append(NPC(300,50,75,self.g, "curlybrace.png",125,125,6, "curly"))
-        self.npcs.append(NPC(500,50,45,self.g, "misery.png",125,125,6, "misery"))
-        self.npcs.append(NPC(800,50,45,self.g, "balrog.png",240,150,6, "balrog"))
+        self.npcs.append(NPC(300,50,62,self.g, "curlybrace.png",125,125,6, "curly"))
+        self.npcs.append(NPC(500,50,62,self.g, "misery.png",125,125,6, "misery"))
+        self.npcs.append(NPC(800,50,75,self.g, "balrog.png",240,150,6, "balrog"))
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
         self.enemies.append(Critter(300,200,45,self.g,"critter.png",98,98,3,100,1000,10,20))
-        self.guns = [] # Guns lying on the ground
-        self.guns.append(Gun(200,self.g,30,self.g,"polarstar.png",109,75, 5, 0.1)) 
+        self.guns = [] # Guns lying on the groundp
+        self.guns.append(Gun(200,self.g - 30,30,self.g,"polarstar.png",109,75, 5, 0.1)) 
         self.equippedGuns = [] # Guns equipped by the player   
         self.bullets = []
         self.dmgNumberStart = 0
