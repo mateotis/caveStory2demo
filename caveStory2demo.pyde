@@ -211,6 +211,24 @@ class Quote(Creature):
                 if self.currentHealth <= 0 and self.currentLives > 0:
                     self.currentLives -= 1
                     self.currentHealth = self.maxHealth
+                    
+        for b in game.bossBullets:
+            if self.distance(b) <= self.r + b.r: # Update the timer on every collision
+                self.endTime = time.time()
+            if round(self.endTime - self.startTime, 1) >= 1: # You can only get damaged once per second
+                self.recentlyDamaged = False
+            
+            if self.distance(b) <= self.r + b.r and self.recentlyDamaged == False: # If you hit an enemy, you take damage
+                self.currentHealth -= 30
+                # self.currentXP -= 10
+                # self.displayedXP -= 10
+                self.recentlyDamaged = True
+                self.startTime = time.time()
+                game.bossBullets.remove(b)
+                del b
+                if self.currentHealth <= 0 and self.currentLives > 0:
+                    self.currentLives -= 1
+                    self.currentHealth = self.maxHealth
 
         for g in game.guns:
             if self.distance(g) <= self.r + g.r:
@@ -377,7 +395,7 @@ class Critter(Enemy):
         stroke(255)
         noFill()
         ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
-
+            
 class Tile:
     def __init__(self,x,y,w,h,r):
         self.x=x
@@ -461,7 +479,7 @@ class Gun(Item): # Almost the same as Creature, but without needing frame count.
         for t in game.tiles: # Fixes bug that let you shoot through walls when you were standing against them
             self.hittingWall = game.quote.hitWall(game.quote.x, game.quote.y, game.quote.r, t.x, t.y, t.w, t.h)
         if self.gunReloading == False and game.quote.leftCollided == False and game.quote.rightCollided == False:
-            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y + 30,10,1,"polarstarbullet.png",116,90,1,game.quote.dir*8))
+            game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y + 30,10,1,"polarstarbullet.png",116,90,1,game.quote.dir*8, 0, "quote"))
             self.gunReloading = True
             self.reloadStart = time.time()
             self.reload()
@@ -470,20 +488,87 @@ class Gun(Item): # Almost the same as Creature, but without needing frame count.
         if (self.reloadEnd - self.reloadStart) >= self.fireRate:
             self.gunReloading = False
 
+class Boss(Enemy):
+    def __init__(self,x,y,r,g,img,w,h,F,x1,x2,dmg,health):
+        Enemy.__init__(self,x,y,r,g,img,w,h,F,dmg,health)
+        self.x1=x1
+        self.x2=x2
+        self.vx = 5
+        self.bossRecharging = False
+        self.rechargeStart = time.time()
+        self.rechargeEnd = time.time()
+        
+    def update(self):
+        #self.gravity()
+        # for t in game.tiles:
+        #     self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+        #     if self.hittingWall == True:
+        #         break
+        
+        # if self.leftCollided == True: # Checks collisions first, then regular movement
+        #     self.vx = -2
+        # elif self.rightCollided == True:
+        #     self.vx = 2
+        if self.x > self.x2:
+            self.vx = -5
+            self.dir = -1
+        elif self.x < self.x1:
+            self.vx = 5
+            self.dir = 1
+        
+        self.x += self.vx
+        self.y += self.vy
+        
+    def display(self):
+        self.update()
+        image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h)
+         
+        # if self.vy != 0:
+        #     if self.dir > 0:
+        #         image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,196,0,294,294)
+        #     elif self.dir < 0:
+        #         image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,196,0,294,294)
+                        
+        strokeWeight(5)
+        stroke(255)
+        noFill()
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        self.fire()
+        
+    def fire(self):
+        for t in game.tiles: # Fixes bug that let you shoot through walls when you were standing against them
+            self.hittingWall = game.quote.hitWall(game.quote.x, game.quote.y, game.quote.r, t.x, t.y, t.w, t.h)
+        if self.bossRecharging == False:
+            game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,40,1,"miseryBulletSmall.png",116,90,1,0, 5, "boss"))
+            self.bossRecharging = True
+            self.rechargeStart = time.time()
+            self.recharge()
+
+    
+    def recharge(self):
+        if (self.rechargeEnd - self.rechargeStart) >= 1:
+            self.bossRecharging = False
+
 class Bullet(Creature):
-    def __init__(self,x,y,r,g,img,w,h,F,vx):
+    def __init__(self,x,y,r,g,img,w,h,F,vx,vy,shooter):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
         self.vx = vx
+        self.vy = vy
         self.dir = vx
         self.ttl = 60
+        self.shooter = shooter
         
     def update(self):
         # self.dmgNumberEnd = time.time()
         self.x += self.vx
+        self.y += self.vy
         self.ttl -= 1
         
         if self.ttl == 0:
-            game.bullets.remove(self)
+            if self.shooter == "boss":
+                game.bossBullets.remove(self)
+            elif self.shooter == "quote":
+                game.bullets.remove(self)
             del self
             return
         
@@ -491,9 +576,14 @@ class Bullet(Creature):
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
             if self.hittingWall == True:
                 if len(game.bullets) > 0:
-                    game.bullets.remove(self)
+                    if self.shooter == "boss":
+                        game.bossBullets.remove(self)
+                        break
+                    elif self.shooter == "quote":
+                        game.bullets.remove(self)
+                        break
                     break
-                
+        
         for e in game.enemies:
             if len(game.bullets) > 0 and self.distance(e) <= self.r + e.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
                     e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
@@ -514,7 +604,16 @@ class Bullet(Creature):
                         del e
                         break
             
-            
+    def display(self):
+        self.update()
+        image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,int(self.f)*self.w,0,int(self.f+1)*self.w,self.h)
+        #image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h)
+        
+        strokeWeight(5)
+        stroke(255)
+        noFill()
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
 
@@ -551,10 +650,12 @@ class Game:
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
         self.enemies.append(Critter(300,200,45,self.g,"critter.png",98,98,3,100,1000,10,20))
+        self.boss = Boss(50, 100, 62,self.g, "misery.png",125,125,6, 100, 1000, 20, 100)
         self.guns = [] # Guns lying on the groundp
         self.guns.append(Gun(200,self.g - 30,30,self.g,"polarstar.png",109,75, 5, 0.1)) 
         self.equippedGuns = [] # Guns equipped by the player   
         self.bullets = []
+        self.bossBullets = []
         self.dmgNumberStart = 0
         self.enemyHit = False
         self.xpdrops = []
@@ -604,6 +705,8 @@ class Game:
         for e in self.enemies:
             e.display()
             
+        self.boss.display()
+            
         for b in self.bullets:
             b.display()
             # print(self.enemyHit)
@@ -618,6 +721,8 @@ class Game:
             # if time.time() == self.dmgNumberStart + 2:
             #     self.enemyHit = False
             
+        for b in self.bossBullets:
+            b.display()
             
         for n in self.npcs:
             n.display()
@@ -665,7 +770,10 @@ def draw():
     for g in game.equippedGuns:
         if g.gunReloading == True:
             g.reloadEnd = time.time()
-            g.reload() # Updates reload timer until gun is reloaded.
+            g.reload() # Updates reload timer until gun is reloaded.    
+    if game.boss.bossRecharging == True:
+        game.boss.rechargeEnd = time.time()
+        game.boss.recharge()
     if game.quote.currentLives == 0:
         game.__init__(1024,768,600)
         game.display()
@@ -681,6 +789,8 @@ def keyPressed():
     elif keyCode == 88 and game.gunAcquired == True:
         for g in game.equippedGuns:
             g.fire()
+    elif keyCode == 86:
+        game.boss.fire()
     elif keyCode == UP: # Moves camera
         if game.y >= game.setY:
             game.y += -10
