@@ -163,6 +163,7 @@ class Quote(Creature):
         self.displayedXP = 0 # Specifically for the XP display
         self.maxXP = 300
         self.keyHandler={LEFT:False, RIGHT:False, UP:False}
+        self.xpCollected = player.loadFile(path+"/sounds/xpCollected.mp3")
     def update(self):
         self.gravity()
 
@@ -264,8 +265,9 @@ class Quote(Creature):
                 if self.currentXP + 60 <= self.maxXP: # Can only get XP to a certain level
                     self.currentXP += 60
                     self.displayedXP += 60
-                    print(self.currentXP)
-                    self.levelUp() 
+                    self.levelUp()
+                self.xpCollected.rewind()
+                self.xpCollected.play()
                 game.xpdrops.remove(x)
                 del x
                 
@@ -273,6 +275,8 @@ class Quote(Creature):
             if self.distance(h) <= self.r + h.r:
                 self.currentHealth = 100
                 game.heartdrops.remove(h)
+                self.xpCollected.rewind()
+                self.xpCollected.play()
                 del h
                 
         for h in game.heartcapsules:
@@ -507,12 +511,15 @@ class Gun(Item): # Almost the same as Creature, but without needing frame count.
         self.gunReloading = False
         self.reloadStart = time.time()
         self.reloadEnd = time.time()
+        self.shotSound = player.loadFile(path+"/sounds/polarStarSound.mp3")
         
     def fire(self):
         for t in game.tiles: # Fixes bug that let you shoot through walls when you were standing against them
             self.hittingWall = game.quote.hitWall(game.quote.x, game.quote.y, game.quote.r, t.x, t.y, t.w, t.h)
         if self.gunReloading == False and game.quote.leftCollided == False and game.quote.rightCollided == False:
             game.bullets.append(Bullet(game.quote.x+game.quote.dir*game.quote.r,game.quote.y + 30,10,1,"polarstarbullet.png",116,90,1,game.quote.dir*8, 0, game.equippedGuns[0].dmg, "quote"))
+            self.shotSound.rewind()
+            self.shotSound.play()
             self.gunReloading = True
             self.reloadStart = time.time()
             self.reload()
@@ -625,15 +632,15 @@ class Bullet(Creature):
         self.ttl -= 1
         
         if game.gunAcquired == True:
-            if self.x <= 0:
-                game.bullets.remove(self)
-            
             if self.ttl == 0:
                 if self.shooter == "boss":
                     game.bossBullets.remove(self)
                 elif self.shooter == "quote":
-                    game.bullets.remove(self)
-                del self
+                    try:
+                        game.bullets.remove(self)
+                        #del self
+                    except:
+                        pass
                 return
             
             for t in game.tiles: # Bullet rams into tile
@@ -643,7 +650,11 @@ class Bullet(Creature):
                         if self.shooter == "boss":
                             game.bossBullets.remove(self)
                         elif self.shooter == "quote":
-                            game.bullets.remove(self)
+                            try:
+                                game.bullets.remove(self)
+                                #del self
+                            except:
+                                break
                             break
                         break
             
@@ -655,6 +666,8 @@ class Bullet(Creature):
                             print('error')
                         #self.bullet = game.bullets[0]
                         e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
+                        game.enemyDamaged.rewind()
+                        game.enemyDamaged.play()
                         # self.dmgNumberStart = time.time()
                         game.enemyHit = True
                         textSize(48)
@@ -663,13 +676,15 @@ class Bullet(Creature):
                         if len(game.bullets) > 0:
                             try:
                                 game.bullets.remove(self)
+                                #del self
                             except:
                                 break
-                            # del self
                         else:
                             break
                         if e.health <= 0:
                             game.enemies.remove(e)
+                            game.enemyKilled.rewind()
+                            game.enemyKilled.play()
                             for i in range(3):
                                 game.xpdrops.append(XPDrop(e.x - i*25, e.y, 23, game.g, "xpdrop.png", 46, 46))
                             if random(20) == 1:
@@ -685,6 +700,9 @@ class Bullet(Creature):
                     # fill(255)
                     # #text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
                     game.bullets.remove(self)
+                    #del self
+                    
+        del self
             
             
     def display(self):
@@ -725,6 +743,8 @@ class Game:
         self.y = 0
         self.setY = 0
         self.gunAcquired = False
+        self.enemyDamaged = player.loadFile(path+"/sounds/enemyDamaged.mp3")
+        self.enemyKilled = player.loadFile(path+"/sounds/enemyKilled.mp3")
         self.quote = Quote(50,self.g - 75,75,self.g,"quote.png",120,120,4)
         self.npcs = []
         self.npcs.append(NPC(300,50,62,self.g, "curlybrace.png",125,125,6, "curly"))
@@ -886,9 +906,11 @@ def keyPressed():
     elif keyCode == 86:
         game.boss.health -= 10
     elif keyCode == UP: # Moves camera
+        game.ogY = game.setY
         if game.y >= game.setY:
             game.y += -10
     elif keyCode == DOWN:
+        game.ogY = game.setY
         if game.y <= game.setY:
             game.y += 10
     elif key == ENTER:
@@ -923,6 +945,6 @@ def keyReleased():
     elif keyCode == 67:
         game.quote.keyHandler[UP]=False
     elif keyCode == UP: # Moves camera back to original position
-        game.y = game.setY
+        game.y = game.ogY
     elif keyCode == DOWN:
-        game.y = game.setY
+        game.y = game.ogY
