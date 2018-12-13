@@ -497,6 +497,7 @@ class Boss(Enemy):
         self.bossRecharging = False
         self.rechargeStart = time.time()
         self.rechargeEnd = time.time()
+        self.turnCount = 0
         
     def update(self):
         #self.gravity()
@@ -509,12 +510,25 @@ class Boss(Enemy):
         #     self.vx = -2
         # elif self.rightCollided == True:
         #     self.vx = 2
-        if self.x > self.x2:
-            self.vx = -5
-            self.dir = -1
-        elif self.x < self.x1:
-            self.vx = 5
-            self.dir = 1
+        
+        #if self.x > self.x2:
+        if self.turnCount % 15 == 0: # Moves to the middle for the circle attack
+            self.bossRecharging = True # Doesn't shoot until in position
+            if self.x > 500:
+                self.vx = - 10
+            if self.x < 500:
+                self.vx = 10
+            else:
+                self.bossRecharging = False
+        else:
+            if self.x > game.quote.x:
+                self.vx = max(-500.0/self.health, -10)
+                self.dir = -1
+            elif self.x < game.quote.x:
+                self.vx = min(500.0/self.health, 10)
+                self.dir = 1
+            else:
+                self.vx = 0
         
         self.x += self.vx
         self.y += self.vy
@@ -539,14 +553,26 @@ class Boss(Enemy):
         for t in game.tiles: # Fixes bug that let you shoot through walls when you were standing against them
             self.hittingWall = game.quote.hitWall(game.quote.x, game.quote.y, game.quote.r, t.x, t.y, t.w, t.h)
         if self.bossRecharging == False:
-            game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,40,1,"miseryBulletSmall.png",116,90,1,0, 5, "boss"))
+            if self.turnCount % 15 == 0: # Circle attack every 5 turns
+                for i in range(0, 11, 5):
+                    for j in range(0, 11, 5):
+                        game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,40,1,"miseryBulletSmall.png",85,85,1,-5 + i, -5 + j, "boss"))
+                for b in game.bossBullets:
+                    if b.vx == 0 and b.vy == 0:
+                        game.bossBullets.remove(b)
+                        del b
+            if self.health > self.health/2:
+                game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,40,1,"miseryBulletSmall.png",85,85,1,0, 5, "boss"))
+            elif self.health < self.health/2:
+                game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,50,1,"miseryBulletLarge.png",100,100,1,0, 5, "boss"))
             self.bossRecharging = True
+            self.turnCount += 1
             self.rechargeStart = time.time()
             self.recharge()
 
     
     def recharge(self):
-        if (self.rechargeEnd - self.rechargeStart) >= 1:
+        if (self.rechargeEnd - self.rechargeStart) >= self.health/500.0: # Recharge gets quicker as boss' health decreases
             self.bossRecharging = False
 
 class Bullet(Creature):
@@ -564,45 +590,57 @@ class Bullet(Creature):
         self.y += self.vy
         self.ttl -= 1
         
-        if self.ttl == 0:
-            if self.shooter == "boss":
-                game.bossBullets.remove(self)
-            elif self.shooter == "quote":
-                game.bullets.remove(self)
-            del self
-            return
-        
-        for t in game.tiles: # Bullet rams into tile
-            self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
-            if self.hittingWall == True:
-                if len(game.bullets) > 0:
-                    if self.shooter == "boss":
-                        game.bossBullets.remove(self)
+        if game.gunAcquired == True:
+            if self.ttl == 0:
+                if self.shooter == "boss":
+                    game.bossBullets.remove(self)
+                elif self.shooter == "quote":
+                    game.bullets.remove(self)
+                del self
+                return
+            
+            for t in game.tiles: # Bullet rams into tile
+                self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+                if self.hittingWall == True:
+                    if len(game.bullets) > 0:
+                        if self.shooter == "boss":
+                            game.bossBullets.remove(self)
+                            break
+                        elif self.shooter == "quote":
+                            game.bullets.remove(self)
+                            break
                         break
-                    elif self.shooter == "quote":
+            
+            for e in game.enemies:
+                if len(game.bullets) > 0 and self.distance(e) <= self.r + e.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
+                        print(game.bullets)
+                        e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
+                        # self.dmgNumberStart = time.time()
+                        game.enemyHit = True
+                        textSize(48)
+                        fill(255)
+                        text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
                         game.bullets.remove(self)
-                        break
-                    break
-        
-        for e in game.enemies:
-            if len(game.bullets) > 0 and self.distance(e) <= self.r + e.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
-                    e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
+                        if e.health >= 0:
+                            break
+                        elif e.health <= 0:
+                            game.enemies.remove(e)
+                            for i in range(3):
+                                game.xpdrops.append(XPDrop(e.x - i*25, e.y, 23, game.g, "xpdrop.png", 46, 46))
+                            if random(20) == 1:
+                                game.heartdrops.append(HeartDrop(e.x, e.y + 10, 43, game.g, "heartdrop.png", 46, 46))
+                            del e
+                            break
+                        
+            if self.shooter == "quote" and len(game.bullets) > 0 and self.distance(game.boss) <= self.r + game.boss.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
+                    game.boss.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
                     # self.dmgNumberStart = time.time()
                     game.enemyHit = True
                     textSize(48)
                     fill(255)
                     text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
                     game.bullets.remove(self)
-                    if e.health >= 0:
-                        break
-                    elif e.health <= 0:
-                        game.enemies.remove(e)
-                        for i in range(3):
-                            game.xpdrops.append(XPDrop(e.x - i*25, e.y, 23, game.g, "xpdrop.png", 46, 46))
-                        if random(20) == 1:
-                            game.heartdrops.append(HeartDrop(e.x, e.y + 10, 43, game.g, "heartdrop.png", 46, 46))
-                        del e
-                        break
+            
             
     def display(self):
         self.update()
@@ -650,7 +688,7 @@ class Game:
         self.enemies = []
         self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
         self.enemies.append(Critter(300,200,45,self.g,"critter.png",98,98,3,100,1000,10,20))
-        self.boss = Boss(50, 100, 62,self.g, "misery.png",125,125,6, 100, 1000, 20, 100)
+        self.boss = Boss(50, 100, 62,self.g, "misery.png",125,125,6, 100, 1000, 20, 500)
         self.guns = [] # Guns lying on the groundp
         self.guns.append(Gun(200,self.g - 30,30,self.g,"polarstar.png",109,75, 5, 0.1)) 
         self.equippedGuns = [] # Guns equipped by the player   
@@ -678,8 +716,8 @@ class Game:
         self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Someone watched LotR.", 60))
         self.tiles = []
         self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
-        # for i in range(5):
-        #     self.tiles.append(Platform(250+i*250,450-150*i,200,50))
+        for i in range(5):
+            self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
     def dialogProgress(self,name,cnt):
         if cnt < len(self.totalList):
@@ -736,6 +774,12 @@ class Game:
         for h in self.heartcapsules:
             h.display()
         
+        # Boss health
+        fill(0,0,0) # Colour of the full bar
+        rect(50,650,900,50) # The full bar
+        fill(255,0,0) # Colour of the current progress
+        rect(50,650,max(game.boss.health * 1.8, 0), 50) # Current progress
+        
         # Experience bar; starts empty
         fill(102,0,51) # Colour of the full bar
         rect(50,30,100,20) # The full bar
@@ -790,7 +834,7 @@ def keyPressed():
         for g in game.equippedGuns:
             g.fire()
     elif keyCode == 86:
-        game.boss.fire()
+        game.boss.health -= 10
     elif keyCode == UP: # Moves camera
         if game.y >= game.setY:
             game.y += -10
