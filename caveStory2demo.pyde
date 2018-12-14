@@ -1,8 +1,11 @@
 add_library('minim')
-import os, time
+import os, time, LevelReader.py
 path=os.getcwd()
 player = Minim(this)
 # saveFile = open("saveGame.csv", "w")
+
+LevelReader.loadLevel(0)
+
 
 class Creature:
     def __init__(self,x,y,r,g,img,w,h,F):
