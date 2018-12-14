@@ -1,5 +1,5 @@
 self.tiles.append(Platform(600,450,200,50, "stonetile.png"))
-self.tiles.append(Platform(850,200,200,50, "stonetile.png"))
+self.tiles.append(Platform(850,250,200,50, "stonetile.png"))
 self.tiles.append(Platform(1100,50,200,50, "stonetile.png"))
 self.tiles.append(Platform(600,50,200,50, "stonetile.png"))
 self.tiles.append(Platform(350,-100,200,50, "stonetile.png"))
