@@ -115,6 +115,7 @@ class Creature:
         
         # Collision
         if distance <= r:
+
             if self.leftCollided == True:
                 self.rightCollided = False
                 #print('Left collision')
@@ -124,6 +125,8 @@ class Creature:
                 #print('Right collision')
                 return True
             elif self.topCollided == True:
+                if isinstance(self,Bullet):
+                    print('in hitWall')
                 self.bottomCollided = False
                 #print('Top collision')
                 return True
@@ -649,16 +652,16 @@ class Bullet(Creature):
             for t in game.tiles: # Bullet rams into tile
                 self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
                 if self.hittingWall == True:
-                    if len(game.bullets) > 0:
-                        if self.shooter == "boss":
-                            game.bossBullets.remove(self)
-                        elif self.shooter == "quote":
-                            try:
-                                game.bullets.remove(self)
-                                #del self
-                            except:
-                                break
+                    if self.shooter == "boss":
+                        game.bossBullets.remove(self)
+                        #break
+                    elif self.shooter == "quote":
+                        try:
+                            game.bullets.remove(self)
+                            #del self
+                        except:
                             break
+                        break
                         break
             
             for e in game.enemies:
