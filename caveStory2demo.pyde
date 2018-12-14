@@ -1,10 +1,11 @@
 add_library('minim')
-import os, time, LevelReader
+import os, time
+#LevelReader.py
 path=os.getcwd()
 player = Minim(this)
 # saveFile = open("saveGame.csv", "w")
 
-level = LevelReader.loadLevel(0)
+#LevelReader.loadLevel(0)
 
 
 class Creature:
@@ -21,10 +22,10 @@ class Creature:
         self.f=0 # Cycles through frames
         self.img = loadImage(path+"/images/"+img)
         self.dir = 1 # Direction of image
-        self.l_CollisionPossible = False # These values are here as fallbacks, in case a movement check happens before hitWall is called
-        self.r_CollisionPossible = False
-        self.t_CollisionPossible = False
-        self.b_CollisionPossible = False
+        self.leftCollided = False # These values are here as fallbacks, in case a movement check happens before hitWall is called
+        self.rightCollided = False
+        self.topCollided = False
+        self.bottomCollided = False
     
     def gravity(self):
         # for t in game.tiles:
@@ -35,7 +36,7 @@ class Creature:
         for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
             if self.hittingWall == True:
-                if self.t_CollisionPossible == True: # Only set gravity to tile y if collided from the top, else reset to ground level; this fixes gravity
+                if self.topCollided == True: # Only set gravity to tile y if collided from the top, else reset to ground level; this fixes gravity
                     self.g = t.y
                     break
                 else:
@@ -52,7 +53,7 @@ class Creature:
             self.vy = 0        
                 
         for t in game.tiles: # Bounce back down off tile's bottom
-            if self.b_CollisionPossible == True:
+            if self.bottomCollided == True:
                 self.vy = 0.1
                 
     
@@ -86,26 +87,26 @@ class Creature:
         strokeWeight(5)
         stroke(255)
         noFill()
-        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
         
     def hitWall(self,x,y,r,x1,y1,w,h): # Checks for collision with tiles
         # Test values
-        self.testX = x #Why self. and not just "testX"?
+        self.testX = x
         self.testY = y
     
         # Check sides and set type of collision
-        if x < x1:
-            self.testX = x1 #and 
-            self.l_CollisionPossible = True
-        elif x > x1+w:
+        if x <= x1:
+            self.testX = x1
+            self.leftCollided = True
+        elif x >= x1+w:
             self.testX = x1+w 
-            self.r_CollisionPossible = True
-        if y < y1:
+            self.rightCollided = True
+        if y <= y1:
             self.testY = y1
-            self.t_CollisionPossible = True
-        elif y > y1+h:
+            self.topCollided = True
+        elif y >= y1+h:
             self.testY = y1+h
-            self.b_CollisionPossible = True
+            self.bottomCollided = True
     
         # Calculate distance
         self.distX = x-self.testX
@@ -116,31 +117,29 @@ class Creature:
         # Collision
         if distance <= r:
 
-            if self.l_CollisionPossible == True:
-                self.r_CollisionPossible = False
+            if self.leftCollided == True:
+                self.rightCollided = False
                 #print('Left collision')
                 return True
-            elif self.r_CollisionPossible == True:
-                self.l_CollisionPossible = False
+            elif self.rightCollided == True:
+                self.leftCollided = False
                 #print('Right collision')
                 return True
-            elif self.t_CollisionPossible == True:
-                if isinstance(self,Bullet):
-                    print('in hitWall')
-                self.b_CollisionPossible = False
+            elif self.topCollided == True:
+                self.bottomCollided = False
                 #print('Top collision')
                 return True
-            elif self.b_CollisionPossible == True:
+            elif self.bottomCollided == True:
                 self.topCollided = False
                 #print('Bottom collision')
                 return True
             #return True
         
         # If there's no collision, reset the values
-        self.r_CollisionPossible = False
-        self.l_CollisionPossible = False
-        self.t_CollisionPossible = False
-        self.b_CollisionPossible = False
+        self.rightCollided = False
+        self.leftCollided = False
+        self.topCollided = False
+        self.bottomCollided = False
         return False
 
 class Enemy(Creature):
@@ -177,10 +176,10 @@ class Quote(Creature):
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
             if self.hittingWall == True:
                 break
-        if self.keyHandler[LEFT] and self.rightCollided == False:
+        if self.keyHandler[LEFT] and self.rightCollided == False and self.x > 50: # Can't move if you're at a wall or at the edges of the game area
             self.vx = -5
             self.dir = -1
-        elif self.keyHandler[RIGHT] and self.leftCollided == False:
+        elif self.keyHandler[RIGHT] and self.leftCollided == False and self.x < 6500:
             self.vx = 5
             self.dir = 1
         else:
@@ -264,7 +263,9 @@ class Quote(Creature):
                 game.guns.remove(g)
                 del g
                 game.gunAcquired = True
-                game.quote = Quote(200,game.g - 75,75,self.g,"quotewithPS.png",128,120,4)
+                self.ogPosX = game.quote.x
+                self.ogPosY = game.quote.y
+                game.quote = Quote(self.ogPosX,self.ogPosY,70,self.g,"quotewithPS.png",128,120,4)
                 
         for x in game.xpdrops:
             if self.distance(x) <= self.r + x.r:
@@ -324,8 +325,8 @@ class NPC(Creature):
         strokeWeight(5)
         stroke(255)
         noFill()
-        ###ellipse#ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
-        ##ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        #ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
 
 class DialogBox:
     def __init__(self,x,y,w,h,speaker,img,msg,txtSize):
@@ -357,7 +358,7 @@ class Spikes(Enemy):
         strokeWeight(5)
         stroke(255)
         noFill()
-        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
 
 class Bat(Enemy):
     def __init__(self,x,y,r,g,img,w,h,F,y1,y2,dmg,health):
@@ -437,16 +438,16 @@ class Critter(Enemy):
         strokeWeight(5)
         stroke(255)
         noFill()
-        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
             
 class Tile:
-    def __init__(self,x,y,w,h,r, img):
+    def __init__(self,x,y,w,h,r,img):
         self.x=x
         self.y=y
         self.w=w
         self.h=h 
         self.r=r
-        self.img = img
+        self.img = loadImage(path+"/images/"+img)
         
     def display(self):
         image(self.img,self.x-game.x,self.y-game.y, self.w, self.h) 
@@ -464,7 +465,7 @@ class Platform(Tile):
         self.y=y
         self.w=w
         self.h=h 
-        self.img = img
+        self.img = loadImage(path+"/images/"+img)
 
 class Item:
     def __init__(self,x,y,r,g,img,w,h):
@@ -505,7 +506,7 @@ class Item:
         strokeWeight(5)
         stroke(255)
         noFill()
-        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
 
 class Gun(Item): # Almost the same as Creature, but without needing frame count.
     def __init__(self,x,y,r,g,img,w,h,dmg,fireRate):
@@ -599,7 +600,7 @@ class Boss(Enemy):
         strokeWeight(5)
         stroke(255)
         noFill()
-        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
         if self.health > 0:
             self.fire()
         else: # Falls to the ground on death
@@ -618,6 +619,8 @@ class Boss(Enemy):
                     if b.vx == 0 and b.vy == 0:
                         game.bossBullets.remove(b)
                         del b
+            if self.turnCount % 6 == 0: # Dropping crates on the player every 6 turns
+                game.bossBullets.append(Bullet(game.quote.x,self.y + 30,40,1,"squaretile.png",85,85,1,0, 10, 20, "boss"))
             if self.health > self.health/2:
                 game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,40,1,"miseryBulletSmall.png",85,85,1,0, 5, 20, "boss"))
             elif self.health < self.health/2:
@@ -733,7 +736,7 @@ class Bullet(Creature):
         strokeWeight(5)
         stroke(255)
         noFill()
-        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
         
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
@@ -756,35 +759,49 @@ class HeartCapsule(Item):
         
 class Game:
     def __init__ (self,w,h,g):
-        self.state = "menu"
+        self.state = "play"
         self.pause = False
         self.bossBattle = False
         self.w=w
         self.h=h
         self.g=g
         self.x = 0
-        self.y = -500
+        self.y = 0
         self.setY = 0
         self.gunAcquired = False
         self.enemyDamaged = player.loadFile(path+"/sounds/enemyDamaged.mp3")
         self.enemyKilled = player.loadFile(path+"/sounds/enemyKilled.mp3")
-        self.quote = Quote(level["Quote"][0][0],level["Quote"][0][1] - 100,75,self.g,"quote.png",120,120,4)
+        self.quote = Quote(50,self.g - 70,70,self.g,"quote.png",120,120,4)
         self.npcs = []
-        self.npcs.append(NPC(300,50,62,self.g, "curlybrace.png",125,125,6, "curly"))
-        self.npcs.append(NPC(500,50,62,self.g, "misery.png",125,125,6, "misery"))
-        self.npcs.append(NPC(800,50,75,self.g, "balrog.png",240,150,6, "balrog"))
+        self.npcs.append(NPC(400,self.g - 62,62,self.g, "curlybrace.png",125,125,6, "curly"))
+        self.npcs.append(NPC(2000,self.g - 125,62,self.g, "misery.png",125,125,6, "misery"))
+        self.npcs.append(NPC(2200,-1225,62,self.g, "misery.png",125,125,6, "misery"))
+        self.npcs.append(NPC(3900,-1200,62,self.g, "misery.png",125,125,6, "misery"))
+        self.npcs.append(NPC(5800,-330,62,self.g, "misery.png",125,125,6, "misery"))
+        self.npcs.append(NPC(2300,-600,75,self.g, "balrog.png",240,150,6, "balrog"))
         self.enemies = []
+        self.enemies.append(Bat(750,-0,35,self.g,"bat.png",80,80,6,-400, -10,5,20))
+        self.enemies.append(Bat(400,-100,35,self.g,"bat.png",80,80,6,-400,-100,5,20))
+        self.enemies.append(Bat(4000,-60,35,self.g,"bat.png",80,80,6,-400,-65,5,20))
+        self.enemies.append(Bat(3400,-390,35,self.g,"bat.png",80,80,6,-700,-400,5,20))
+        self.enemies.append(Bat(1650,-1300,35,self.g,"bat.png",80,80,6,-1280,-1280,5,20))
+        self.enemies.append(Bat(1430,-1420,35,self.g,"bat.png",80,80,6,-1820,-1420,5,20))
+        self.enemies.append(Bat(1200,-1530,35,self.g,"bat.png",80,80,6,-1920,-1520,5,20))
         
-        for coord in level["Bats"]:
-            self.enemies.append(Bat(coord[0],coord[1],35,self.g,"bat.png",80,80,6,200,500,5,20))
-        for coord in level["Critters"]:
-            self.enemies.append(Critter(coord[0],coord[1],45,self.g,"critter.png",98,98,3,100,1000,10,20))
+        for i in range(3):
+            self.enemies.append(Critter(2500 + i * 100,self.g - 98,45,self.g,"critter.png",98,98,3,2200,3000,10,20))
+        for i in range(2):
+            self.enemies.append(Critter(2400 + i * 100,-1200,45,self.g,"critter.png",98,98,3,2300,2750,10,20))
+        2000, -1100,800
         self.spikes = []
-        for coord in level["Spikes"]:
-            self.spikes.append(Spikes(50, self.g - 50, 50, self.g, "spikes.png", 102, 90, 1, 10, 20))
+        for i in range(6):
+            self.spikes.append(Spikes(850 + i * 75, self.g - 40, 50, self.g, "spikes.png", 102, 90, 1, 10, 20))
+        for i in range(20):
+            self.spikes.append(Spikes(4000 + i * 75, self.g - 40, 50, self.g, "spikes.png", 102, 90, 1, 10, 20))
+        self.spikes.append(Spikes(3400, -430, 50, self.g, "spikes.png", 102, 90, 1, 10, 20))
         self.boss = Boss(50, 100, 62,self.g, "misery.png",125,125,6, 100, 1000, 20, 500)
-        self.guns = [] # Guns lying on the groundp
-        self.guns.append(Gun(200,self.g - 30,30,self.g,"polarstar.png",109,75, 5, 0.1)) 
+        self.guns = [] # Guns lying on the ground
+        self.guns.append(Gun(150,-800,30,self.g,"polarstar.png",109,75, 5, 0.1)) 
         self.equippedGuns = [] # Guns equipped by the player   
         self.bullets = []
         self.bossBullets = []
@@ -793,7 +810,7 @@ class Game:
         self.xpdrops = []
         self.heartdrops = []
         self.heartcapsules = []
-        self.heartcapsules.append(HeartCapsule(200, 100, 40, self.g, "heartcapsule.png", 96,76))
+        #self.heartcapsules.append(HeartCapsule(950, -1730, 40, self.g, "heartcapsule.png", 96,76))
         self.dialogCount = 0
         self.totalDBoxesCurly = [] # All of the dialogue gets loaded here at once
         self.totalDBoxesMisery = []
@@ -809,16 +826,38 @@ class Game:
         self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Hi, I'm Balrog!", 72))
         self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Someone watched LotR.", 60))
         self.tiles = []
-        self.levelCode = open("levelCode.txt", "r")
+        # self.levelCode = open("levelCode.txt", "r")
         # for i in self.levelCode:
         #     eval(i)
-        #self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
-        for coord in level["S"]:
-             self.tiles.append(Platform(coord[0] * 100,coord[1] * 100,100,100, loadImage(path + "/images/squaretile.png")))
-             print("something")
-        for coord in level["T_S"]:
-            self.tiles.append(Platform(coord[0] * 100,coord[1] * 100,100,100, loadImage(path + "/images/squaretile.png")))
-            print("something")
+        # self.tiles.append(Tile(1000, self.g - 150, 223, 187, 50, "caveRocks.png"))
+        for i in range(3):
+             self.tiles.append(Platform(600+i*250,450-150*i,200,50, "stonetile.png"))
+        for i in range(3):
+             self.tiles.append(Platform(600-i*250,50-150*i,200,50, "stonetile.png"))
+        for i in range(3):
+             self.tiles.append(Platform(3600-i*250,-230-150*i,200,50, "stonetile.png"))
+        self.tiles.append(Tile(1500, self.g - 386, 193, 386, 50, "crystalRock.png"))
+        self.tiles.append(Platform(2400, self.g - 150,200,50, "stonetile.png"))
+        self.tiles.append(Tile(3000, self.g - 200,200,200, 50, "squareRock.png"))
+        for i in range(4):
+            self.tiles.append(Tile(3200 + i * 200, self.g - (300 + i * 100),200,300 + i * 100, 50, "stoneStairs.png"))
+        self.tiles.append(Tile(2000, -500,900,180, 50, "brownRockPlatform.png"))
+        self.tiles.append(Platform(1700, -600,200,50, "stonetile.png"))
+        self.tiles.append(Platform(1600, -750,200,50, "stonetile.png"))
+        self.tiles.append(Platform(1900, -900,200,50, "stonetile.png"))
+        self.tiles.append(Platform(2000, -1100,1000,50, "stonetile.png"))
+        for i in range(4):
+             self.tiles.append(Platform(1600-i*250,-1200-150*i,200,50, "stonetile.png"))
+        self.tiles.append(Tile(2800, -1300,200,200, 50, "squareRock.png"))
+        self.tiles.append(Platform(3200, -900,200,50, "stonetile.png"))
+        self.tiles.append(Platform(3500, -900,200,50, "stonetile.png"))
+        for i in range(4):
+            self.tiles.append(Tile(3800 + i * 300, -1000,300,150, 50, "steelEyes.png"))
+        self.tiles.append(Tile(5100, -200,1600,200, 50, "bossPlatform.png"))
+        self.tiles.append(Tile(5100, -1000,200,800, 50, "bossPlatformVertical.png"))
+        self.tiles.append(Tile(6500, -1000,200,800, 50, "bossPlatformVertical.png"))
+        
+        
         
     def dialogProgress(self,name,cnt):
         if cnt < len(self.totalList):
@@ -831,9 +870,6 @@ class Game:
         line(0,self.g - self.y,self.w,self.g - self.y)
             
         self.quote.display()
-        if self.quote.midDialog == True:
-            for i in self.displayList:
-                i.display()
             
         for t in self.tiles:
             t.display()
@@ -877,6 +913,10 @@ class Game:
         
         for h in self.heartcapsules:
             h.display()
+            
+        if self.quote.midDialog == True:
+            for i in self.displayList:
+                i.display()
         
         if self.bossBattle == True:
             # Boss health
@@ -907,7 +947,7 @@ class Game:
         fill(255)
         text(str(game.quote.currentLives), 20, 80)
         
-game = Game(1024,768,10000)
+game = Game(1024,768,600)
 
 def setup():
     size(game.w, game.h)
@@ -954,6 +994,7 @@ def draw():
             text("Paused",game.w//2,game.h//2)
         
 def mouseClicked():
+    print(mouseX + game.x, mouseY + game.y)
     if game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3 < mouseY < game.h//3+50:
         # game.menuMusic.pause()
         # game.music.play()
