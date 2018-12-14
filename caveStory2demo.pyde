@@ -83,7 +83,7 @@ class Creature:
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
         
     def hitWall(self,x,y,r,x1,y1,w,h): # Checks for collision with tiles
         # Test values
@@ -321,8 +321,8 @@ class NPC(Creature):
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
-        #ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
+        ###ellipse#ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        ##ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
 
 class DialogBox:
     def __init__(self,x,y,w,h,speaker,img,msg,txtSize):
@@ -354,7 +354,7 @@ class Spikes(Enemy):
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
 
 class Bat(Enemy):
     def __init__(self,x,y,r,g,img,w,h,F,y1,y2,dmg,health):
@@ -434,7 +434,7 @@ class Critter(Enemy):
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
             
 class Tile:
     def __init__(self,x,y,w,h,r):
@@ -443,7 +443,7 @@ class Tile:
         self.w=w
         self.h=h 
         self.r=r
-        self.img = loadImage(path+"/images/testtile.png")
+        self.img = loadImage(path+"/images/squaretile.png")
         
     def display(self):
         image(self.img,self.x-game.x,self.y-game.y, self.w, self.h) 
@@ -451,7 +451,7 @@ class Tile:
         strokeWeight(5)
         stroke(255)
         noFill()
-        #ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
+        ##ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
         #line(self.x-game.x, self.y-game.y, self.x-game.x, self.y+self.w-game.y) # Left wall
         rect(self.x-game.x, self.y-game.y,self.w,self.h)
 
@@ -502,7 +502,7 @@ class Item:
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
 
 class Gun(Item): # Almost the same as Creature, but without needing frame count.
     def __init__(self,x,y,r,g,img,w,h,dmg,fireRate):
@@ -564,14 +564,21 @@ class Boss(Enemy):
             else:
                 self.bossRecharging = False
         else:
-            if self.x > game.quote.x:
-                self.vx = max(-500.0/self.health, -10)
-                self.dir = -1
-            elif self.x < game.quote.x:
-                self.vx = min(500.0/self.health, 10)
-                self.dir = 1
-            else:
-                self.vx = 0
+            if self.health > 0:
+                if self.x > game.quote.x:
+                    if self.health < 10:
+                        self.vx = -10
+                    else:
+                        self.vx = max(-500.0/self.health, -10) # Moves quicker as health decreases
+                        self.dir = -1
+                elif self.x < game.quote.x:
+                    if self.health < 10:
+                        self.vx = 10
+                    else:
+                        self.vx = min(500.0/self.health, 10)
+                        self.dir = 1
+                else:
+                    self.vx = 0
         
         self.x += self.vx
         self.y += self.vy
@@ -589,8 +596,12 @@ class Boss(Enemy):
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
-        self.fire()
+        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        if self.health > 0:
+            self.fire()
+        else: # Falls to the ground on death
+            self.vx = 0
+            self.gravity()
         
     def fire(self):
         for t in game.tiles: # Fixes bug that let you shoot through walls when you were standing against them
@@ -650,7 +661,10 @@ class Bullet(Creature):
                 self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
                 if self.hittingWall == True:
                     if self.shooter == "boss":
-                        game.bossBullets.remove(self)
+                        try:
+                            game.bossBullets.remove(self)
+                        except:
+                            break
                         #break
                     elif self.shooter == "quote":
                         try:
@@ -716,7 +730,7 @@ class Bullet(Creature):
         strokeWeight(5)
         stroke(255)
         noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
         
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
@@ -739,6 +753,9 @@ class HeartCapsule(Item):
         
 class Game:
     def __init__ (self,w,h,g):
+        self.state = "menu"
+        self.pause = False
+        self.bossBattle = False
         self.w=w
         self.h=h
         self.g=g
@@ -785,9 +802,12 @@ class Game:
         self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Hi, I'm Balrog!", 72))
         self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Someone watched LotR.", 60))
         self.tiles = []
+        self.levelCode = open("levelCode.txt", "r")
+        # for i in self.levelCode:
+        #     eval(i)
         self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
         for i in range(5):
-            self.tiles.append(Platform(250+i*250,450-150*i,200,50))
+             self.tiles.append(Platform(250+i*250,450-150*i,200,50))
         
     def dialogProgress(self,name,cnt):
         if cnt < len(self.totalList):
@@ -816,8 +836,6 @@ class Game:
         for s in self.spikes:
             s.display()
             
-        self.boss.display()
-            
         for b in self.bullets:
             b.display()
             # print(self.enemyHit)
@@ -832,8 +850,10 @@ class Game:
             # if time.time() == self.dmgNumberStart + 2:
             #     self.enemyHit = False
             
-        for b in self.bossBullets:
-            b.display()
+        if self.bossBattle == True:
+            self.boss.display()
+            for b in self.bossBullets:
+                b.display()
             
         for n in self.npcs:
             n.display()
@@ -847,11 +867,12 @@ class Game:
         for h in self.heartcapsules:
             h.display()
         
-        # Boss health
-        fill(0,0,0) # Colour of the full bar
-        rect(50,650,900,50) # The full bar
-        fill(255,0,0) # Colour of the current progress
-        rect(50,650,max(game.boss.health * 1.8, 0), 50) # Current progress
+        if self.bossBattle == True:
+            # Boss health
+            fill(0,0,0) # Colour of the full bar
+            rect(50,650,900,50) # The full bar
+            fill(255,0,0) # Colour of the current progress
+            rect(50,650,max(game.boss.health * 1.8, 0), 50) # Current progress
         
         # Experience bar; starts empty
         fill(102,0,51) # Colour of the full bar
@@ -882,20 +903,51 @@ def setup():
     background(0)
     
 def draw():
-    background(100)
-    game.display()
-    for g in game.equippedGuns:
-        if g.gunReloading == True:
-            g.reloadEnd = time.time()
-            g.reload() # Updates reload timer until gun is reloaded.    
-    if game.boss.bossRecharging == True:
-        game.boss.rechargeEnd = time.time()
-        game.boss.recharge()
-    if game.quote.currentLives == 0:
-        game.__init__(1024,768,600)
-        game.display()
+    if game.state == "menu":
+        background(0)
+        textSize(36)
+        fill(70)
+        rect(game.w//2.5,game.h//3,250,50)
+        if game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3 < mouseY < game.h//3+50:
+            fill(0,255,0)
+        else:
+            fill(255)
+        text("Play Game",game.w//2.5+20,game.h//3+40)
         
-    
+        fill(70)
+        rect(game.w//2.5,game.h//3+100,250,50)
+        if game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3+100 < mouseY < game.h//3+150:
+            fill(0,255,0)
+        else:
+            fill(255)
+        text("Instructions",game.w//2.5+20,game.h//3+140)
+        
+    elif game.state == "play" or game.state == "gameover":
+        if game.pause == False:
+            background(100)
+            game.display()
+            for g in game.equippedGuns:
+                if g.gunReloading == True:
+                    g.reloadEnd = time.time()
+                    g.reload() # Updates reload timer until gun is reloaded.    
+            if game.quote.currentLives == 0:
+                game.__init__(1024,768,600)
+                game.state = "menu"
+            if game.bossBattle == True:
+                if game.boss.bossRecharging == True:
+                    game.boss.rechargeEnd = time.time()
+                    game.boss.recharge()
+        else:
+            textSize(30)
+            fill(255,0,0)
+            text("Paused",game.w//2,game.h//2)
+        
+def mouseClicked():
+    if game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3 < mouseY < game.h//3+50:
+        # game.menuMusic.pause()
+        # game.music.play()
+        game.state="play"
+        
 def keyPressed():
     if keyCode == LEFT:
         game.quote.keyHandler[LEFT]=True
