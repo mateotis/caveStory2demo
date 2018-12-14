@@ -1,0 +1,48 @@
+36: This function interprets to a booolean value based on whether or not the ceature in question has collided with a tile object.
+39: Sets the ground for the creature to be the tile if it is above the tile and colliding with it.
+42: Default ground setting reset after the creature is no longer above a tile but is still colliding with a tile fro a different direction.
+45: Default ground setting reset after the creature is no longer above a tile and is not touching any tiles.
+47: Checks if creature is above the ground.
+48: Checks if the vertical velocity currently assigned to the creature would make it surpass the currently set gorund for it.
+49: Sets the vertical velocity assigned when falling so that the creature lands exactly on the ground and then stops falling.
+51: Provides gravitational acceleration in the downwards direction if the creature is above the ground.
+53: Resets the creature's vertical velocity after it has landed back on its current ground.
+55: Loops through every tile object in the game.
+57: Provides an unnoticeable "rebound" velocity that prevents the player from jumping through a tile object when it collides with its bottom.
+62: Calls gravity to update positions before updating displaying the new ones in case they change.
+63: Sets the creature's position based on the x-velocity set to it in specific children of the Creature class.
+64: Same as x, but also affected by the gravitational acceleration in gravity().
+
+
+??1: Moves the camera verticaly whenn the player has reached half the height of the screen, moving in the direction the player is (dependent of the sign of their vy attribute).
+??2: Same as before, but for the player's horizontal movement.
+
+74: Updates the game BEFORE displaying the new state of things.
+
+??: Used specifically in updating the bat's position according to a sine function.
+
+83: Loads the image for a Creature sprite if it is facing right.
+86: Same, but for when facing left.
+88: Lines 88-91 were used for testing collision circles when creating the game. They draw an ellipse with no filled-in color around every creature.
+95: Stores the values.
+
+148: A  child class for creating ceatures that damage the player in some way.
+151: Provides each enemy with the amount of damage it can deal to the player when attacking them.
+152: Assigns each enemy a set amount of health that can be lowered by the player, such that if their health reaches 0, the enemy "dies".
+154: A child class for creating the player and their unique game mechanic.
+157: A boolean for checking whether the player has been damaged or not.
+158: A boolean for checking whether to start dialogue when the character interacts with an NPC in the game.
+159: A boolean for allowing cycling through dialogue options.
+160: Checks if the player collides with a tile from the right direction.
+161: Same, but for the left direction.
+162: Later assigned to a string based on what NPC the player interacts with to properly load their dialogue and other interactions.
+163: A boolean for initiating an "invincibility" period between times when the player is damaged.
+164: Compared to a timer that is started and then restarted every time the player is damaged to give them temporary invincibility for them to move to a position before getting damaged again.
+165: Used with startTime for the similar reasons.
+166: The player's number of lives. Decrements every time the player dies. When it is less than 1, the start screen for the game is redisplayed and the game restarted.
+167: Sets the player's experience level. Depending on its value, the player will deal more or less damage if they possess a gun.
+168: Sets the player's health, which is decreased by the dmg attribute of any enemy when the player collides with one, and when it reaches 0, the the layer loses a life or the game resets.
+169: Sets the player's current maximum health, which determines how much HP they can have. Important for preventing restoring HP above its current maximum, and for increaisng maximum life when heart capsules are collected.
+170: Sets the player's current level of experience, which in turn affects the amount of damage dealt by their gun to enemies.
+171: Displays ...
+172: Sets a maximum level of experience that can't be surpassed when collecting experience. It also decrements when the player is damaged.

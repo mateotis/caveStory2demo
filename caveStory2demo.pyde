@@ -1,11 +1,7 @@
 add_library('minim')
 import os, time
-#LevelReader.py
 path=os.getcwd()
 player = Minim(this)
-# saveFile = open("saveGame.csv", "w")
-
-#LevelReader.loadLevel(0)
 
 
 class Creature:
@@ -28,10 +24,6 @@ class Creature:
         self.bottomCollided = False
     
     def gravity(self):
-        # for t in game.tiles:
-        #     self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
-        #     if self.hittingWall == True: # It breaks if it finds one tile that's collided with, making it work with multiple tiles
-        #         break
                 
         for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
@@ -84,10 +76,10 @@ class Creature:
         elif self.dir < 0:
             image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,int(self.f+1)*self.w,0,int(self.f)*self.w,self.h)
             
-        strokeWeight(5)
-        stroke(255)
-        noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+        # strokeWeight(5)
+        # stroke(255)
+        # noFill()
+        # ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r) # Used throughout making the game to check hitboxes
         
     def hitWall(self,x,y,r,x1,y1,w,h): # Checks for collision with tiles
         # Test values
@@ -111,7 +103,6 @@ class Creature:
         # Calculate distance
         self.distX = x-self.testX
         self.distY = y-self.testY
-        # print(self.distX, self.distY)
         distance = sqrt((self.distX ** 2) + (self.distY ** 2))
         
         # Collision
@@ -133,7 +124,6 @@ class Creature:
                 self.topCollided = False
                 #print('Bottom collision')
                 return True
-            #return True
         
         # If there's no collision, reset the values
         self.rightCollided = False
@@ -321,12 +311,6 @@ class NPC(Creature):
     def display(self):
         self.update()
         image(self.img,self.x-self.r-game.x,self.y-self.r-game.y, self.w, self.h)
-        
-        strokeWeight(5)
-        stroke(255)
-        noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
-        #ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
 
 class DialogBox:
     def __init__(self,x,y,w,h,speaker,img,msg,txtSize):
@@ -354,11 +338,6 @@ class Spikes(Enemy):
         
     def display(self):
         image(self.img,self.x-self.r-game.x,self.y-self.r-game.y, self.w, self.h)
-        
-        strokeWeight(5)
-        stroke(255)
-        noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
 
 class Bat(Enemy):
     def __init__(self,x,y,r,g,img,w,h,F,y1,y2,dmg,health):
@@ -435,11 +414,6 @@ class Critter(Enemy):
                 image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,196,0,294,294)
             elif self.dir < 0:
                 image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,196,0,294,294)
-                        
-        strokeWeight(5)
-        stroke(255)
-        noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
             
 class Tile:
     def __init__(self,x,y,w,h,r,img):
@@ -452,13 +426,6 @@ class Tile:
         
     def display(self):
         image(self.img,self.x-game.x,self.y-game.y, self.w, self.h) 
-        
-        strokeWeight(5)
-        stroke(255)
-        noFill()
-        ##ellipse(self.x+self.w//2-game.x,self.y+self.h//2-game.y,self.w,self.h)
-        #line(self.x-game.x, self.y-game.y, self.x-game.x, self.y+self.w-game.y) # Left wall
-        rect(self.x-game.x, self.y-game.y,self.w,self.h)
 
 class Platform(Tile):
     def __init__(self,x,y,w,h,img):
@@ -503,11 +470,6 @@ class Item:
     def display(self):
         self.update()
         image(self.img,self.x - self.r - game.x,self.y - self.r - game.y)
-        
-        strokeWeight(5)
-        stroke(255)
-        noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
 
 class Gun(Item): # Almost the same as Creature, but without needing frame count.
     def __init__(self,x,y,r,g,img,w,h,dmg,fireRate):
@@ -591,17 +553,7 @@ class Boss(Enemy):
     def display(self):
         self.update()
         image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h)
-         
-        # if self.vy != 0:
-        #     if self.dir > 0:
-        #         image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,196,0,294,294)
-        #     elif self.dir < 0:
-        #         image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,196,0,294,294)
-                        
-        strokeWeight(5)
-        stroke(255)
-        noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
+                                 
         if self.health > 0:
             self.fire()
         else: # Falls to the ground on death
@@ -737,12 +689,6 @@ class Bullet(Creature):
     def display(self):
         self.update()
         image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,int(self.f)*self.w,0,int(self.f+1)*self.w,self.h)
-        #image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h)
-        
-        strokeWeight(5)
-        stroke(255)
-        noFill()
-        ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
         
     def distance(self,e):
         print(self, e)
@@ -1051,8 +997,6 @@ def keyPressed():
                         game.state = "victory"
                 game.display()
         game.display()
-        # for e in game.enemies:
-        #     saveFile.write(str(e.r))
 
 
 def keyReleased():
