@@ -1,46 +1,49 @@
-def loadLevel(levelNum, level):
+def loadLevel(levelNum):
 	
-	level = {"Quote":[], "Bats":[], "Critters":[], "S":[], "T_S":[], "Capsules":[], "Spikes":[], "Misery":[], "Balrog":[], "CurlyBrace":[]}
+    level = {"Quote":[], "Bats":[], "Critters":[], "S":[], "T_S":[], "Capsules":[], "Spikes":[], "Misery":[], "Balrog":[], "CurlyBrace":[]}
 	
-	levelReader = open("csLevel_" + str(levelNum) + ".csv", 'r')
-	dimsList = levelReader.readline().split(",")
-	rowCount = dimsList[0]
-	colCount = dimsList[1]
+    levelReader = open("cs2Level_" + str(levelNum) + ".csv", 'r')
+    dimsList = levelReader.readline().split(",")
+    print(dimsList)
+    rowCount = int(dimsList[1])
+    colCount = int(dimsList[2])
 
-	for row in range(rowCount):
-		line = lineReader.readline().split(",")
-		stoneSwitch = False
-		transStoneSwitch = False
-		for cell in range(colCount):
-			if line[cell] == 's':
-				level["S"].append([row, cell])
-				stoneSwitch = not stoneSwitch
-			elif line[cell] == 's*':
-				level["T_S"].append([row, cell])
-				transStoneSwitch = not transStoneSwitch
-			elif line[cell] == "ss":
-				level["S"].append([row, cell])
-			elif line[cell] == "":
-				if stoneSwitch:
-					level["S"].append([row, cell])
-				elif transStoneSwitch:
-					level["T_S"].append([row, cell])
-			elif line[cell] == 'Q':
-				level["Quote"].append([row, cell])
-			elif line[cell] == 'C':
-				level["Critters"].append(row, cell)
-			elif line[cell] == 'B':
-				level["Bats"].append([row, cell])
-			elif line[cell] == 'hc':
-				level["Capsules"].append([row, cell])
-			elif line[cell] == 'M':
-				level["Misery"].append([row, cell])
-			elif line[cell] == 'spk':
-				level["Spikes"].append([row, cell])
-			elif line[cell] == "BAL":
-				level["Balrog"].append([row, cell])
-			elif line[cell] == "CRLY":
-				level["CurlyBrace"].append([row, cell])
+    for row in range(rowCount):
+        Line = levelReader.readline().split(",")
+        stoneSwitch = False
+        transStoneSwitch = False
+        for cell in range(colCount):
+            if Line[cell] == 's':
+                level["S"].append([row, cell])
+                stoneSwitch = not stoneSwitch
+            elif Line[cell] == 's*':
+                level["T_S"].append([row, cell])
+                transStoneSwitch = not transStoneSwitch
+            elif Line[cell] == "ss":
+                level["S"].append([row, cell])
+            elif Line[cell] == "":
+                if stoneSwitch:
+                    level["S"].append([row, cell])
+                elif transStoneSwitch:
+                    level["T_S"].append([row, cell])
+            elif Line[cell] == 'Q':
+                level["Quote"].append([row, cell])
+            elif Line[cell] == 'C':
+                level["Critters"].append([row, cell])
+            elif Line[cell] == 'B':
+                level["Bats"].append([row, cell])
+            elif Line[cell] == 'hc':
+                level["Capsules"].append([row, cell])
+            elif Line[cell] == 'M':
+                level["Misery"].append([row, cell])
+            elif Line[cell] == 'spk':
+                level["Spikes"].append([row, cell])
+            elif Line[cell] == "BAL":
+                level["Balrog"].append([row, cell])
+            elif Line[cell] == "CRLY":
+                level["CurlyBrace"].append([row, cell])
+
+    return (level)
 
 '''
 
@@ -67,7 +70,7 @@ def loadLevel(levelNum, level):
 
 '''
 
-	'''
+'''
 	MiseryBoss:
 - XPos:200#
 - YPos:50#

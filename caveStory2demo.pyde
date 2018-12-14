@@ -1,10 +1,10 @@
 add_library('minim')
-import os, time, LevelReader.py
+import os, time, LevelReader
 path=os.getcwd()
 player = Minim(this)
 # saveFile = open("saveGame.csv", "w")
 
-LevelReader.loadLevel(0)
+level = LevelReader.loadLevel(0)
 
 
 class Creature:
@@ -21,10 +21,10 @@ class Creature:
         self.f=0 # Cycles through frames
         self.img = loadImage(path+"/images/"+img)
         self.dir = 1 # Direction of image
-        self.leftCollided = False # These values are here as fallbacks, in case a movement check happens before hitWall is called
-        self.rightCollided = False
-        self.topCollided = False
-        self.bottomCollided = False
+        self.l_CollisionPossible = False # These values are here as fallbacks, in case a movement check happens before hitWall is called
+        self.r_CollisionPossible = False
+        self.t_CollisionPossible = False
+        self.b_CollisionPossible = False
     
     def gravity(self):
         # for t in game.tiles:
@@ -35,7 +35,7 @@ class Creature:
         for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
             if self.hittingWall == True:
-                if self.topCollided == True: # Only set gravity to tile y if collided from the top, else reset to ground level; this fixes gravity
+                if self.t_CollisionPossible == True: # Only set gravity to tile y if collided from the top, else reset to ground level; this fixes gravity
                     self.g = t.y
                     break
                 else:
@@ -52,7 +52,7 @@ class Creature:
             self.vy = 0        
                 
         for t in game.tiles: # Bounce back down off tile's bottom
-            if self.bottomCollided == True:
+            if self.b_CollisionPossible == True:
                 self.vy = 0.1
                 
     
@@ -90,22 +90,22 @@ class Creature:
         
     def hitWall(self,x,y,r,x1,y1,w,h): # Checks for collision with tiles
         # Test values
-        self.testX = x
+        self.testX = x #Why self. and not just "testX"?
         self.testY = y
     
         # Check sides and set type of collision
         if x < x1:
-            self.testX = x1
-            self.leftCollided = True
+            self.testX = x1 #and 
+            self.l_CollisionPossible = True
         elif x > x1+w:
             self.testX = x1+w 
-            self.rightCollided = True
+            self.r_CollisionPossible = True
         if y < y1:
             self.testY = y1
-            self.topCollided = True
+            self.t_CollisionPossible = True
         elif y > y1+h:
             self.testY = y1+h
-            self.bottomCollided = True
+            self.b_CollisionPossible = True
     
         # Calculate distance
         self.distX = x-self.testX
@@ -116,31 +116,31 @@ class Creature:
         # Collision
         if distance <= r:
 
-            if self.leftCollided == True:
-                self.rightCollided = False
+            if self.l_CollisionPossible == True:
+                self.r_CollisionPossible = False
                 #print('Left collision')
                 return True
-            elif self.rightCollided == True:
-                self.leftCollided = False
+            elif self.r_CollisionPossible == True:
+                self.l_CollisionPossible = False
                 #print('Right collision')
                 return True
-            elif self.topCollided == True:
+            elif self.t_CollisionPossible == True:
                 if isinstance(self,Bullet):
                     print('in hitWall')
-                self.bottomCollided = False
+                self.b_CollisionPossible = False
                 #print('Top collision')
                 return True
-            elif self.bottomCollided == True:
+            elif self.b_CollisionPossible == True:
                 self.topCollided = False
                 #print('Bottom collision')
                 return True
             #return True
         
         # If there's no collision, reset the values
-        self.rightCollided = False
-        self.leftCollided = False
-        self.topCollided = False
-        self.bottomCollided = False
+        self.r_CollisionPossible = False
+        self.l_CollisionPossible = False
+        self.t_CollisionPossible = False
+        self.b_CollisionPossible = False
         return False
 
 class Enemy(Creature):
@@ -440,13 +440,13 @@ class Critter(Enemy):
         #ellipse(self.x-game.x,self.y-game.y,2*self.r,2*self.r)
             
 class Tile:
-    def __init__(self,x,y,w,h,r):
+    def __init__(self,x,y,w,h,r, img):
         self.x=x
         self.y=y
         self.w=w
         self.h=h 
         self.r=r
-        self.img = loadImage(path+"/images/squaretile.png")
+        self.img = img
         
     def display(self):
         image(self.img,self.x-game.x,self.y-game.y, self.w, self.h) 
@@ -459,12 +459,12 @@ class Tile:
         rect(self.x-game.x, self.y-game.y,self.w,self.h)
 
 class Platform(Tile):
-    def __init__(self,x,y,w,h):
+    def __init__(self,x,y,w,h,img):
         self.x=x
         self.y=y
         self.w=w
         self.h=h 
-        self.img = loadImage(path+"/images/stonetile.png")
+        self.img = img
 
 class Item:
     def __init__(self,x,y,r,g,img,w,h):
@@ -763,21 +763,25 @@ class Game:
         self.h=h
         self.g=g
         self.x = 0
-        self.y = 0
+        self.y = -500
         self.setY = 0
         self.gunAcquired = False
         self.enemyDamaged = player.loadFile(path+"/sounds/enemyDamaged.mp3")
         self.enemyKilled = player.loadFile(path+"/sounds/enemyKilled.mp3")
-        self.quote = Quote(50,self.g - 75,75,self.g,"quote.png",120,120,4)
+        self.quote = Quote(level["Quote"][0][0],level["Quote"][0][1] - 100,75,self.g,"quote.png",120,120,4)
         self.npcs = []
         self.npcs.append(NPC(300,50,62,self.g, "curlybrace.png",125,125,6, "curly"))
         self.npcs.append(NPC(500,50,62,self.g, "misery.png",125,125,6, "misery"))
         self.npcs.append(NPC(800,50,75,self.g, "balrog.png",240,150,6, "balrog"))
         self.enemies = []
-        self.enemies.append(Bat(300,50,35,self.g,"bat.png",80,80,6,200,500,5,20))
-        self.enemies.append(Critter(300,200,45,self.g,"critter.png",98,98,3,100,1000,10,20))
+        
+        for coord in level["Bats"]:
+            self.enemies.append(Bat(coord[0],coord[1],35,self.g,"bat.png",80,80,6,200,500,5,20))
+        for coord in level["Critters"]:
+            self.enemies.append(Critter(coord[0],coord[1],45,self.g,"critter.png",98,98,3,100,1000,10,20))
         self.spikes = []
-        self.spikes.append(Spikes(50, self.g - 50, 50, self.g, "spikes.png", 102, 90, 1, 10, 20))
+        for coord in level["Spikes"]:
+            self.spikes.append(Spikes(50, self.g - 50, 50, self.g, "spikes.png", 102, 90, 1, 10, 20))
         self.boss = Boss(50, 100, 62,self.g, "misery.png",125,125,6, 100, 1000, 20, 500)
         self.guns = [] # Guns lying on the groundp
         self.guns.append(Gun(200,self.g - 30,30,self.g,"polarstar.png",109,75, 5, 0.1)) 
@@ -808,9 +812,13 @@ class Game:
         self.levelCode = open("levelCode.txt", "r")
         # for i in self.levelCode:
         #     eval(i)
-        self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
-        for i in range(5):
-             self.tiles.append(Platform(250+i*250,450-150*i,200,50))
+        #self.tiles.append(Tile(1000, self.g - 150, 294, 145, 50))
+        for coord in level["S"]:
+             self.tiles.append(Platform(coord[0] * 100,coord[1] * 100,100,100, loadImage(path + "/images/squaretile.png")))
+             print("something")
+        for coord in level["T_S"]:
+            self.tiles.append(Platform(coord[0] * 100,coord[1] * 100,100,100, loadImage(path + "/images/squaretile.png")))
+            print("something")
         
     def dialogProgress(self,name,cnt):
         if cnt < len(self.totalList):
@@ -899,7 +907,7 @@ class Game:
         fill(255)
         text(str(game.quote.currentLives), 20, 80)
         
-game = Game(1024,768,600)
+game = Game(1024,768,10000)
 
 def setup():
     size(game.w, game.h)
