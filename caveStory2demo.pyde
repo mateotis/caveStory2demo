@@ -389,6 +389,7 @@ class Critter(Enemy):
         self.x1=x1
         self.x2=x2
         self.vx = 2
+        self.jump = player.loadFile(path+"/sounds/critterJump.mp3")
         
     def update(self):
         self.gravity()
@@ -399,8 +400,8 @@ class Critter(Enemy):
         
         if int(random(50)) == 1 and self.y+self.r == self.g and game.quote.distance(self) <= 2 * (game.quote.r + self.r):
             self.vy = -10
-            # self.jump.rewind()
-            # self.jump.play()
+            self.jump.rewind()
+            self.jump.play()
         if self.leftCollided == True: # Checks collisions first, then regular movement
             self.vx = -2
         elif self.rightCollided == True:
@@ -608,6 +609,7 @@ class Boss(Enemy):
             self.gravity()
         
         if self.health <= 0:
+            game.bossMusic.pause()
             game.npcs.append(NPC(self.x,self.y,62,self.g, "misery.png",125,125,6, "miserydef"))
             game.bossBattle = False
         
@@ -636,7 +638,7 @@ class Boss(Enemy):
 
     
     def recharge(self):
-        if (self.rechargeEnd - self.rechargeStart) >= self.health/500.0: # Recharge gets quicker as boss' health decreases
+        if (self.rechargeEnd - self.rechargeStart) >= max(self.health/500.0,0.3): # Recharge gets quicker as boss' health decreases
             self.bossRecharging = False
 
 class Bullet(Creature):
@@ -764,7 +766,7 @@ class HeartCapsule(Item):
         
 class Game:
     def __init__ (self,w,h,g):
-        self.state = "play"
+        self.state = "menu"
         self.pause = False
         self.bossBattle = False
         self.w=w
@@ -776,6 +778,11 @@ class Game:
         self.gunAcquired = False
         self.enemyDamaged = player.loadFile(path+"/sounds/enemyDamaged.mp3")
         self.enemyKilled = player.loadFile(path+"/sounds/enemyKilled.mp3")
+        self.menuMusic = player.loadFile(path+"/sounds/menuMusic.mp3")
+        self.levelMusic = player.loadFile(path+"/sounds/levelMusic.mp3")
+        self.bossMusic = player.loadFile(path+"/sounds/bossMusic.mp3")
+        self.menuMusic.rewind()
+        self.menuMusic.play()
         self.quote = Quote(50,self.g - 70,70,self.g,"quote.png",120,120,4)
         self.npcs = []
         self.npcs.append(NPC(400,self.g - 62,62,self.g, "curlybrace.png",125,125,6, "curly"))
@@ -1009,6 +1016,8 @@ def draw():
                     g.reloadEnd = time.time()
                     g.reload() # Updates reload timer until gun is reloaded.    
             if game.quote.currentLives == 0:
+                game.bossMusic.pause()
+                game.levelMusic.pause()
                 game.__init__(1024,768,600)
                 game.state = "menu"
             if game.bossBattle == True:
@@ -1029,8 +1038,8 @@ def draw():
 def mouseClicked():
     print(mouseX + game.x, mouseY + game.y)
     if game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3 < mouseY < game.h//3+50:
-        # game.menuMusic.pause()
-        # game.music.play()
+        game.menuMusic.pause()
+        game.levelMusic.play()
         game.state="play"
         
 def keyPressed():
@@ -1064,6 +1073,8 @@ def keyPressed():
                 game.displayList = eval(game.displayListName) # Turns the string into a function expression
                 game.totalList = eval(game.totalListName)
                 if game.dialogCount < len(game.totalList):
+                    if n.name == "misery4":
+                        game.levelMusic.pause()
                     game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
                     game.quote.midDialog = True
                     game.dialogCount += 1
@@ -1072,10 +1083,12 @@ def keyPressed():
                     game.quote.midDialog = False
                     game.dialogCount = 0
                     if n.name == "misery4":
-                        game.boss = Boss(n.x, n.y - 400, 62,game.g, "misery.png",125,125,6, 5300, 6500, 20, 500)
+                        game.boss = Boss(n.x, n.y - 600, 62,game.g, "misery.png",125,125,6, 5300, 6500, 20, 500)
                         game.npcs.remove(n)
                         del n
                         game.bossBattle = True
+                        game.bossMusic.rewind()
+                        game.bossMusic.play()
                     elif n.name == "miserydef":
                         game.npcs.remove(n)
                         del n
