@@ -808,7 +808,7 @@ class Game:
         self.xpdrops = []
         self.heartdrops = []
         self.heartcapsules = []
-        #self.heartcapsules.append(HeartCapsule(950, -1730, 40, self.g, "heartcapsule.png", 96,76))
+        self.heartcapsules.append(HeartCapsule(950, -1730, 40, self.g, "heartcapsule.png", 96,76))
         self.dialogCount = 0
         self.totalDBoxesCurly = [] # All of the dialogue gets loaded here at once
         self.totalDBoxesMisery1 = []
@@ -824,74 +824,13 @@ class Game:
         self.dialogBoxesMisery4 = []
         self.dialogBoxesMiserydef = []
         self.dialogBoxesBalrog = []
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Hi Quote!", 80))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Doctor Booster just informed me", 72))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "that there is a missing", 70))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "crystal fragment in this area.", 70))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "Go find it!", 70))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "You should probably find", 70))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "your gun first though!", 70))
-        self.totalDBoxesCurly.append(DialogBox(100, 100, 700, 175, "curly", "curlybraceFace.png", "I'll be here watching over the area.", 75))
-        self.totalDBoxesMisery1.append(DialogBox(100, 100, 700, 175, "misery1", "miseryFace.png", "So we meet again, robot.", 70))
-        self.totalDBoxesMisery1.append(DialogBox(100, 100, 700, 175, "misery1", "miseryFace.png", "Stay away from the fragment.", 60))
-        self.totalDBoxesMisery1.append(DialogBox(100, 100, 700, 175, "misery1", "miseryFace.png", "It's mine.", 70))
-        self.totalDBoxesMisery1.append(DialogBox(100, 100, 700, 175, "misery1", "miseryFace.png", "If you turn back right now", 70))
-        self.totalDBoxesMisery1.append(DialogBox(100, 100, 700, 175, "misery1", "miseryFace.png", "I'll keep these critters away.", 70))
-        self.totalDBoxesMisery2.append(DialogBox(100, 100, 700, 175, "misery2", "miseryFace.png", "You're still going?", 70))
-        self.totalDBoxesMisery2.append(DialogBox(100, 100, 700, 175, "misery2", "miseryFace.png", "I'm warning you: turn back.", 60))
-        self.totalDBoxesMisery2.append(DialogBox(100, 100, 700, 175, "misery2", "miseryFace.png", "You don't want to keep going.", 60))
-        self.totalDBoxesMisery3.append(DialogBox(100, 100, 700, 175, "misery3", "miseryFace.png", "This is your final warning.", 70))
-        self.totalDBoxesMisery3.append(DialogBox(100, 100, 700, 175, "misery3", "miseryFace.png", "Turn. Back.", 60))
-        self.totalDBoxesMisery4.append(DialogBox(100, 100, 700, 175, "misery4", "miseryFace.png", "You should've listened...", 70))
-        self.totalDBoxesMisery4.append(DialogBox(100, 100, 700, 175, "misery4", "miseryFace.png", "Prepare to die!", 60))
-        self.totalDBoxesMiserydef.append(DialogBox(100, 100, 700, 175, "miserydef", "miseryFace.png", "Ugh...", 60))
-        self.totalDBoxesMiserydef.append(DialogBox(100, 100, 700, 175, "miserydef", "miseryFace.png", "You win...this time.", 60))
-        self.totalDBoxesMiserydef.append(DialogBox(100, 100, 700, 175, "miserydef", "miseryFace.png", "But...", 60))
-        self.totalDBoxesMiserydef.append(DialogBox(100, 100, 700, 175, "miserydef", "miseryFace.png", "I'm afraid the crystal is not here.", 60))
-        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Oh hi, Quote.", 72))
-        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "It's been a while.", 72))
-        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Oh, the crystal fragment?", 72))
-        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "I think I saw it up ahead.", 60))
-        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "Watch out for Misery though.", 60))
-        self.totalDBoxesBalrog.append(DialogBox(100, 100, 700, 175, "balrog", "balrogFace.png", "She really wants that crystal.", 60))
+        loadDialogue = open(path+"/objects/dialogue.txt", "r")
+        for d in loadDialogue:
+            eval(d)
         self.tiles = []
-        # self.levelCode = open("levelCode.txt", "r")
-        # for i in self.levelCode:
-        #     eval(i)
-        for i in range(3):
-             self.tiles.append(Platform(600+i*250,450-150*i,200,50, "stonetile.png"))
-        for i in range(3):
-             self.tiles.append(Platform(600-i*250,50-150*i,200,50, "stonetile.png"))
-        for i in range(3):
-             self.tiles.append(Platform(3600-i*250,-230-150*i,200,50, "stonetile.png"))
-        self.tiles.append(Tile(1500, self.g - 386, 193, 386, 50, "crystalRock.png"))
-        self.tiles.append(Platform(2400, self.g - 150,200,50, "stonetile.png"))
-        self.tiles.append(Tile(3000, self.g - 200,200,200, 50, "squareRock.png"))
-        for i in range(4):
-            self.tiles.append(Tile(3200 + i * 200, self.g - (300 + i * 100),200,300 + i * 100, 50, "stoneStairs.png"))
-        self.tiles.append(Tile(2000, -500,900,180, 50, "brownRockPlatform.png"))
-        self.tiles.append(Platform(1700, -600,200,50, "stonetile.png"))
-        self.tiles.append(Platform(1600, -750,200,50, "stonetile.png"))
-        self.tiles.append(Platform(1900, -900,200,50, "stonetile.png"))
-        self.tiles.append(Platform(2000, -1100,1000,50, "stonetile.png"))
-        for i in range(4):
-             self.tiles.append(Platform(1600-i*250,-1200-150*i,200,50, "stonetile.png"))
-        self.tiles.append(Platform(1600-i*250,-1200-150*i,200,50, "stonetile.png"))
-        self.tiles.append(Platform(1350,-1200-150*i,200,50, "stonetile.png"))
-        self.tiles.append(Tile(2800, -1300,200,200, 50, "squareRock.png"))
-        self.tiles.append(Platform(3200, -900,200,50, "stonetile.png"))
-        self.tiles.append(Platform(3500, -900,200,50, "stonetile.png"))
-        for i in range(4):
-            self.tiles.append(Tile(3800 + i * 300, -1000,300,150, 50, "steelEyes.png"))
-        self.tiles.append(Tile(5100, -200,1600,200, 50, "bossPlatform.png"))
-        self.tiles.append(Tile(5100, -1000,200,800, 50, "bossPlatformVertical.png"))
-        self.tiles.append(Tile(6500, -1000,200,800, 50, "bossPlatformVertical.png"))
-        self.tiles.append(Platform(5400, -600,200,50, "stonetile.png"))
-        self.tiles.append(Platform(5600, -400,200,50, "stonetile.png"))
-        self.tiles.append(Platform(6000, -400,200,50, "stonetile.png"))
-        self.tiles.append(Platform(6200, -600,200,50, "stonetile.png"))
-        
-        
+        loadTiles = open(path+"/objects/tiles.txt", "r")
+        for t in loadTiles:
+            eval(t)
         
     def dialogProgress(self,name,cnt):
         if cnt < len(self.totalList):
@@ -1034,6 +973,8 @@ def draw():
         text("Congratulations!",game.w//4,game.h//4)
         text("You beat the game!",game.w//4,game.h//4 + 100)
         text("Thanks for playing!",game.w//4,game.h//4 + 200)
+        time.sleep(3)
+        game.state = "menu"
         
 def mouseClicked():
     print(mouseX + game.x, mouseY + game.y)
