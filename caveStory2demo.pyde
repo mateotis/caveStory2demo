@@ -177,16 +177,16 @@ class Quote(Creature):
             if self.hittingWall == True:
                 break
         if self.keyHandler[LEFT] and self.rightCollided == False and self.x > 50: # Can't move if you're at a wall or at the edges of the game area
-            self.vx = -10
+            self.vx = -5
             self.dir = -1
         elif self.keyHandler[RIGHT] and self.leftCollided == False and self.x < 6500:
-            self.vx = 10
+            self.vx = 5
             self.dir = 1
         else:
             self.vx = 0
         
         if self.keyHandler[UP] and (self.y+self.r == self.g or self.y+self.r >= self.g - 5 or self.y+self.r >= self.g + 5): # Added some leeway to the calculation so you can jump on tiles
-            self.vy = -20
+            self.vy = -10
         
         self.x += self.vx
         self.y += self.vy
@@ -479,7 +479,7 @@ class Item:
         self.w=w
         self.h=h
         self.img = loadImage(path+"/images/"+img)
-        
+    
     def gravity(self):
         if self.y+self.r < self.g:
             self.vy += 0.3
@@ -488,9 +488,9 @@ class Item:
         else:
             self.vy = 0 #-10
             
-        for p in game.tiles:
-            if self.x in range(p.x, p.x+p.w) and self.y+self.r <= p.y:
-                self.g = p.y
+        for t in game.tiles:
+            if self.x in range(t.x, t.x+t.w) and self.y+self.r <= t.y:
+                self.g = t.y
                 break
             else:
                 self.g = game.g
@@ -781,7 +781,7 @@ class Game:
         self.menuMusic = player.loadFile(path+"/sounds/menuMusic.mp3")
         self.levelMusic = player.loadFile(path+"/sounds/levelMusic.mp3")
         self.bossMusic = player.loadFile(path+"/sounds/bossMusic.mp3")
-        self.menuMusic.rewind()
+        #self.menuMusic.rewind()
         self.menuMusic.play()
         self.quote = Quote(50,self.g - 70,70,self.g,"quote.png",120,120,4)
         self.npcs = []
@@ -928,7 +928,8 @@ def setup():
     
 def draw():
     if game.state == "menu":
-        background(0)
+        game.menuImage = loadImage(path+"/images/menuImage.png")
+        background(game.menuImage)
         textSize(36)
         fill(70)
         rect(game.w//2.5,game.h//3,250,50)
@@ -946,9 +947,21 @@ def draw():
             fill(255)
         text("Instructions",game.w//2.5+20,game.h//3+140)
         
+    elif game.state == "instructions":
+        background(game.menuImage)
+        textSize(50)
+        fill(255)
+        text('Movement = Left and Right Arrows', 100, 100)
+        text('Jump = X', 100, 200)
+        text('Shoot = C', 100, 300)
+        text('Move camera = Up and Down Arrows', 100, 400)
+        text('Talk = Enter', 100, 500)
+        text('Press V to return to menu', 100, 600)
+        
     elif game.state == "play":
         if game.pause == False:
-            background(100)
+            game.backgroundImage = loadImage(path+"/images/backgroundImage.png")
+            background(game.backgroundImage)
             game.display()
             for g in game.equippedGuns:
                 if g.gunReloading == True:
@@ -977,11 +990,12 @@ def draw():
         game.state = "menu"
         
 def mouseClicked():
-    print(mouseX + game.x, mouseY + game.y)
     if game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3 < mouseY < game.h//3+50:
         game.menuMusic.pause()
         game.levelMusic.play()
         game.state="play"
+    elif game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3+100 < mouseY < game.h//3+150:
+        game.state = "instructions"
         
 def keyPressed():
     if keyCode == LEFT:
@@ -994,7 +1008,8 @@ def keyPressed():
         for g in game.equippedGuns:
             g.fire()
     elif keyCode == 86:
-        game.boss.health -= 10
+        if game.state == "instructions":
+            game.state = "menu"
     elif keyCode == UP: # Moves camera
         game.ogY = game.setY
         if game.y >= game.setY:
