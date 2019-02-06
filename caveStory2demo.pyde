@@ -65,9 +65,9 @@ class Creature:
         self.update()
         
         if isinstance (self, Bat):
-            self.f = (self.f+0.3)%self.F
+            self.f = (self.f+0.5)%self.F
         elif self.vx != 0:
-            self.f = (self.f+0.3)%self.F
+            self.f = (self.f+0.5)%self.F
         else:
             self.f = 3
             
@@ -139,7 +139,7 @@ class Enemy(Creature):
         self.health = health
             
 class Quote(Creature):
-    def __init__(self,x,y,r,g,img,w,h,F):
+    def __init__(self,x,y,r,g,img,w,h,F, currentLives):
         Creature.__init__(self,x,y,r,g,img,w,h,F)
         self.recentlyDamaged = False
         self.startingDialog = False
@@ -150,7 +150,7 @@ class Quote(Creature):
         self.timerSet = False
         self.startTime = time.time()
         self.endTime = time.time()
-        self.currentLives = 3
+        self.currentLives = currentLives
         self.currentLevel = 1
         self.currentHealth = 100
         self.maxHealth = 100
@@ -167,10 +167,10 @@ class Quote(Creature):
             if self.hittingWall == True:
                 break
         if self.keyHandler[LEFT] and self.rightCollided == False and self.x > 50: # Can't move if you're at a wall or at the edges of the game area
-            self.vx = -5
+            self.vx = -7
             self.dir = -1
         elif self.keyHandler[RIGHT] and self.leftCollided == False and self.x < 6500:
-            self.vx = 5
+            self.vx = 7
             self.dir = 1
         else:
             self.vx = 0
@@ -255,7 +255,7 @@ class Quote(Creature):
                 game.gunAcquired = True
                 self.ogPosX = game.quote.x
                 self.ogPosY = game.quote.y
-                game.quote = Quote(self.ogPosX,self.ogPosY,70,self.g,"quotewithPS.png",128,120,4)
+                game.quote = Quote(self.ogPosX,self.ogPosY,70,self.g,"quotewithPS.png",128,120,4, self.currentLives)
                 
         for x in game.xpdrops:
             if self.distance(x) <= self.r + x.r:
@@ -287,7 +287,6 @@ class Quote(Creature):
             self.currentLevel += 1
             self.displayedXP = self.displayedXP - 100 # Extra XP carries over
             game.equippedGuns[0].dmg += 2 # Leveling up increases gun damage
-            print(game.equippedGuns[0].dmg)
     
     def distance(self,e):
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
@@ -345,8 +344,12 @@ class Bat(Enemy):
         self.y1=y1
         self.y2=y2
         self.dir = -1
+        self.timer = time.time()
+        self.initial_y = self.y
         
     def update(self):
+        new_y = 100*sin(10* (self.timer - time.time())/(2*PI)) + 0.5 * self.initial_y
+        self.y = new_y
         for t in game.tiles:
             self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
             if self.hittingWall == True:
@@ -504,6 +507,7 @@ class Boss(Enemy):
         self.x1=x1
         self.x2=x2
         self.vx = 5
+        self.maxHealth = health
         self.bossRecharging = False
         self.rechargeStart = time.time()
         self.rechargeEnd = time.time()
@@ -524,9 +528,9 @@ class Boss(Enemy):
         #if self.x > self.x2:
         if self.turnCount % 15 == 0: # Moves to the middle for the circle attack
             self.bossRecharging = True # Doesn't shoot until in position
-            if self.x > 500:
+            if self.x > 5900:
                 self.vx = - 10
-            if self.x < 500:
+            if self.x < 5900:
                 self.vx = 10
             else:
                 self.bossRecharging = False
@@ -534,15 +538,15 @@ class Boss(Enemy):
             if self.health > 0:
                 if self.x > game.quote.x:
                     if self.health < 10:
-                        self.vx = -10
+                        self.vx = -5
                     else:
-                        self.vx = max(-500.0/self.health, -10) # Moves quicker as health decreases
+                        self.vx = max(-500.0/self.health, -5) # Moves quicker as health decreases
                         self.dir = -1
                 elif self.x < game.quote.x:
                     if self.health < 10:
-                        self.vx = 10
+                        self.vx = 5
                     else:
-                        self.vx = min(500.0/self.health, 10)
+                        self.vx = min(500.0/self.health, 5)
                         self.dir = 1
                 else:
                     self.vx = 0
@@ -561,7 +565,8 @@ class Boss(Enemy):
             self.gravity()
         
         if self.health <= 0:
-            game.bossMusic.pause()
+            if game.wantMusic == True:
+                game.bossMusic.pause()
             game.npcs.append(NPC(self.x,self.y,62,self.g, "misery.png",125,125,6, "miserydef"))
             game.bossBattle = False
         
@@ -578,10 +583,10 @@ class Boss(Enemy):
                         game.bossBullets.remove(b)
                         del b
             if self.turnCount % 6 == 0: # Dropping crates on the player every 6 turns
-                game.bossBullets.append(Bullet(game.quote.x,self.y + 30,40,1,"squaretile.png",85,85,1,0, 10, 20, "boss"))
-            if self.health > self.health/2:
+                game.bossBullets.append(Bullet(game.quote.x,self.y - 150,40,1,"squaretile.png",85,85,1,0, 10, 20, "boss"))
+            if self.health > self.maxHealth/2:
                 game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,40,1,"miseryBulletSmall.png",85,85,1,0, 5, 20, "boss"))
-            elif self.health < self.health/2:
+            elif self.health < self.maxHealth/2:
                 game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,50,1,"miseryBulletLarge.png",100,100,1,0, 5, 40, "boss"))
             self.bossRecharging = True
             self.turnCount += 1
@@ -641,10 +646,6 @@ class Bullet(Creature):
             
             for e in game.enemies:
                 if len(game.bullets) > 0 and self.distance(e) <= self.r + e.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
-                        print(self)
-                        print(game.bullets[0])
-                        if self not in game.bullets:
-                            print('error')
                         #self.bullet = game.bullets[0]
                         e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
                         game.enemyDamaged.rewind()
@@ -691,7 +692,6 @@ class Bullet(Creature):
         image(self.img,self.x-self.w//2-game.x,self.y-self.h//2-game.y,self.w,self.h,int(self.f)*self.w,0,int(self.f+1)*self.w,self.h)
         
     def distance(self,e):
-        print(self, e)
         return ((self.x-e.x)**2+(self.y-e.y)**2)**0.5
 
 class XPDrop(Item):
@@ -724,12 +724,14 @@ class Game:
         self.gunAcquired = False
         self.enemyDamaged = player.loadFile(path+"/sounds/enemyDamaged.mp3")
         self.enemyKilled = player.loadFile(path+"/sounds/enemyKilled.mp3")
-        self.menuMusic = player.loadFile(path+"/sounds/menuMusic.mp3")
-        self.levelMusic = player.loadFile(path+"/sounds/levelMusic.mp3")
-        self.bossMusic = player.loadFile(path+"/sounds/bossMusic.mp3")
-        #self.menuMusic.rewind()
-        self.menuMusic.play()
-        self.quote = Quote(50,self.g - 70,70,self.g,"quote.png",120,120,4)
+        self.wantMusic = True
+        self.menuMusicOn = False
+        self.levelMusicOn = False
+        if self.wantMusic == True:
+            self.menuMusic = player.loadFile(path+"/sounds/menuMusic.mp3")
+            self.levelMusic = player.loadFile(path+"/sounds/levelMusic.mp3")
+            self.bossMusic = player.loadFile(path+"/sounds/bossMusic.mp3")
+        self.quote = Quote(50,self.g - 70,70,self.g,"quote.png",120,120,4, 3)
         self.npcs = []
         self.npcs.append(NPC(400,self.g - 62,62,self.g, "curlybrace.png",125,125,6, "curly"))
         self.npcs.append(NPC(2000,self.g - 125,62,self.g, "misery.png",125,125,6, "misery1"))
@@ -741,7 +743,6 @@ class Game:
         self.spikes = []
         loadEnemies = open(path+"/objects/enemies.txt", "r")
         for e in loadEnemies:
-            print(e)
             eval(e)
         self.boss = Boss(0,0, 62,self.g, "misery.png",125,125,6, 5300, 6500, 20, 500)
         self.guns = [] # Guns lying on the ground
@@ -892,6 +893,11 @@ def draw():
         else:
             fill(255)
         text("Instructions",game.w//2.5+20,game.h//3+140)
+        if game.menuMusicOn == False and game.wantMusic == True:
+            game.menuMusic.rewind()
+            game.menuMusic.play()
+            game.menuMusicOn = True
+            
         
     elif game.state == "instructions":
         background(game.menuImage)
@@ -908,14 +914,19 @@ def draw():
         if game.pause == False:
             game.backgroundImage = loadImage(path+"/images/backgroundImage.png")
             background(game.backgroundImage)
+            if game.levelMusicOn == False and game.wantMusic == True:
+                game.levelMusic.rewind()
+                game.levelMusic.play()
+                game.levelMusicOn = True
             game.display()
             for g in game.equippedGuns:
                 if g.gunReloading == True:
                     g.reloadEnd = time.time()
                     g.reload() # Updates reload timer until gun is reloaded.    
             if game.quote.currentLives == 0:
-                game.bossMusic.pause()
-                game.levelMusic.pause()
+                if game.wantMusic == True:
+                    game.bossMusic.pause()
+                    game.levelMusic.pause()
                 game.__init__(1024,768,600)
                 game.state = "menu"
             if game.bossBattle == True:
@@ -932,13 +943,13 @@ def draw():
         text("Congratulations!",game.w//4,game.h//4)
         text("You beat the game!",game.w//4,game.h//4 + 100)
         text("Thanks for playing!",game.w//4,game.h//4 + 200)
-        time.sleep(3)
         game.state = "menu"
         
 def mouseClicked():
     if game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3 < mouseY < game.h//3+50:
-        game.menuMusic.pause()
-        game.levelMusic.play()
+        if game.wantMusic == True:
+            game.menuMusic.pause()
+        game.__init__(1024,768,600)
         game.state="play"
     elif game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3+100 < mouseY < game.h//3+150:
         game.state = "instructions"
@@ -976,7 +987,8 @@ def keyPressed():
                 game.totalList = eval(game.totalListName)
                 if game.dialogCount < len(game.totalList):
                     if n.name == "misery4":
-                        game.levelMusic.pause()
+                        if game.wantMusic == True:
+                            game.levelMusic.pause()
                     game.dialogProgress(game.quote.selectedNPC, game.dialogCount)
                     game.quote.midDialog = True
                     game.dialogCount += 1
@@ -989,8 +1001,9 @@ def keyPressed():
                         game.npcs.remove(n)
                         del n
                         game.bossBattle = True
-                        game.bossMusic.rewind()
-                        game.bossMusic.play()
+                        if game.wantMusic == True:
+                            game.bossMusic.rewind()
+                            game.bossMusic.play()
                     elif n.name == "miserydef":
                         game.npcs.remove(n)
                         del n
