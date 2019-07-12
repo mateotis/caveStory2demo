@@ -514,7 +514,18 @@ class Boss(Enemy):
         self.turnCount = 0
         
     def update(self):
-
+        #self.gravity()
+        # for t in game.tiles:
+        #     self.hittingWall = self.hitWall(self.x, self.y, self.r, t.x, t.y, t.w, t.h)
+        #     if self.hittingWall == True:
+        #         break
+        
+        # if self.leftCollided == True: # Checks collisions first, then regular movement
+        #     self.vx = -2
+        # elif self.rightCollided == True:
+        #     self.vx = 2
+        
+        #if self.x > self.x2:
         if self.turnCount % 15 == 0: # Moves to the middle for the circle attack
             self.bossRecharging = True # Doesn't shoot until in position
             if self.x > 5900:
@@ -529,7 +540,7 @@ class Boss(Enemy):
                     if self.health < 10:
                         self.vx = -5
                     else:
-                        self.vx = max(-500.0/self.health, -3) # Moves quicker as health decreases
+                        self.vx = max(-500.0/self.health, -5) # Moves quicker as health decreases
                         self.dir = -1
                 elif self.x < game.quote.x:
                     if self.health < 10:
@@ -571,8 +582,8 @@ class Boss(Enemy):
                     if b.vx == 0 and b.vy == 0:
                         game.bossBullets.remove(b)
                         del b
-            if self.turnCount % 10 == 0: # Dropping crates on the player every 10 turns
-                game.bossBullets.append(Bullet(game.quote.x,self.y - 200,40,1,"squaretile.png",85,85,1,0, 10, 20, "boss"))
+            if self.turnCount % 6 == 0: # Dropping crates on the player every 6 turns
+                game.bossBullets.append(Bullet(game.quote.x,self.y - 150,40,1,"squaretile.png",85,85,1,0, 10, 20, "boss"))
             if self.health > self.maxHealth/2:
                 game.bossBullets.append(Bullet(self.x+self.r,self.y + 30,40,1,"miseryBulletSmall.png",85,85,1,0, 5, 20, "boss"))
             elif self.health < self.maxHealth/2:
@@ -584,7 +595,7 @@ class Boss(Enemy):
 
     
     def recharge(self):
-        if (self.rechargeEnd - self.rechargeStart) >= max(self.health/500.0,0.7): # Recharge gets quicker as boss' health decreases
+        if (self.rechargeEnd - self.rechargeStart) >= max(self.health/500.0,0.3): # Recharge gets quicker as boss' health decreases
             self.bossRecharging = False
 
 class Bullet(Creature):
@@ -598,6 +609,7 @@ class Bullet(Creature):
         self.shooter = shooter
         
     def update(self):
+        # self.dmgNumberEnd = time.time()
         self.x += self.vx
         self.y += self.vy
         self.ttl -= 1
@@ -634,9 +646,11 @@ class Bullet(Creature):
             
             for e in game.enemies:
                 if len(game.bullets) > 0 and self.distance(e) <= self.r + e.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
+                        #self.bullet = game.bullets[0]
                         e.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
                         game.enemyDamaged.rewind()
                         game.enemyDamaged.play()
+                        # self.dmgNumberStart = time.time()
                         game.enemyHit = True
                         textSize(48)
                         fill(255)
@@ -662,7 +676,15 @@ class Bullet(Creature):
                         
             if self.shooter == "quote" and len(game.bullets) > 0 and self.distance(game.boss) <= self.r + game.boss.r: # Sanity check; sometimes the game crashed when hitting an enemy from too close
                     game.boss.health -= game.equippedGuns[0].dmg # WIP: The game still crashes sometimes             
+                    # self.dmgNumberStart = time.time()
+                    #game.enemyHit = True
+                    # textSize(48)
+                    # fill(255)
+                    # #text(str(game.equippedGuns[0].dmg), e.x - 10, e.y - 10)
                     game.bullets.remove(self)
+                    #del self
+                    
+        #del self
             
             
     def display(self):
@@ -702,7 +724,7 @@ class Game:
         self.gunAcquired = False
         self.enemyDamaged = player.loadFile(path+"/sounds/enemyDamaged.mp3")
         self.enemyKilled = player.loadFile(path+"/sounds/enemyKilled.mp3")
-        self.wantMusic = True
+        self.wantMusic = False
         self.menuMusicOn = False
         self.levelMusicOn = False
         if self.wantMusic == True:
@@ -783,7 +805,18 @@ class Game:
             
         for b in self.bullets:
             b.display()
-
+            # print(self.enemyHit)
+            # if self.enemyHit == True or self.dmgNumberStart != 0:
+            #     print('in loop')
+            #     self.dmgNumberStart = time.time()
+            #     textSize(48)
+            #     fill(255)
+            #     text(str(game.equippedGuns[0].dmg), b.x - 10, b.y - 10)
+            #     game.bullets.remove(b)
+            #     del b
+            # if time.time() == self.dmgNumberStart + 2:
+            #     self.enemyHit = False
+            
         if self.bossBattle == True:
             self.boss.display()
             for b in self.bossBullets:
@@ -879,8 +912,8 @@ def draw():
         
     elif game.state == "play":
         if game.pause == False:
-            #game.backgroundImage = loadImage(path+"/images/backgroundImage.png")
-            background(0)
+            game.backgroundImage = loadImage(path+"/images/backgroundImage.png")
+            background(game.backgroundImage)
             if game.levelMusicOn == False and game.wantMusic == True:
                 game.levelMusic.rewind()
                 game.levelMusic.play()
@@ -910,6 +943,7 @@ def draw():
         text("Congratulations!",game.w//4,game.h//4)
         text("You beat the game!",game.w//4,game.h//4 + 100)
         text("Thanks for playing!",game.w//4,game.h//4 + 200)
+        game.state = "menu"
         
 def mouseClicked():
     if game.w//2.5 < mouseX < game.w//2.5+250 and game.h//3 < mouseY < game.h//3+50:
@@ -942,8 +976,6 @@ def keyPressed():
         if game.y <= game.setY:
             game.y += 10
     elif key == ENTER:
-        if game.state == "victory":
-            game.state = "menu"
         for n in game.npcs:
             if game.quote.distance(n) <= game.quote.r + n.r and (game.quote.startingDialog == False or game.quote.midDialog == True): # If not in dialog and near an NPC, open dialog box.
                 game.quote.getNPC()
